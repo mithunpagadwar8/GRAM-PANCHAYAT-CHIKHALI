@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
@@ -12,11 +13,10 @@ import { Contact } from './pages/Contact';
 
 import { INITIAL_BLOGS, INITIAL_LINKS, INITIAL_MEETINGS, INITIAL_MEMBERS, INITIAL_SCHEMES, INITIAL_SETTINGS, INITIAL_TAX_RECORDS } from './constants';
 import { AppSettings, BlogPost, Complaint as ComplaintType, ImportantLink, MeetingRecord, Member, Scheme, TaxRecord } from './types';
-import { subscribeToCollection, addToCollection } from './services/db';
+import { subscribeToCollection, addToCollection, subscribeToDocument, saveSettings } from './services/db';
 import { isConfigured } from './firebaseConfig';
 
 function App() {
-  // State 
   const [settings, setSettings] = useState<AppSettings>(INITIAL_SETTINGS);
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
   const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
@@ -30,32 +30,34 @@ function App() {
   const [dbError, setDbError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Realtime Cloud Sync Logic
   const connectToDatabase = useCallback(() => {
     if (!isConfigured()) {
-      console.warn("Firebase not configured. Using Demo Data.");
       return () => {};
     }
 
-    setDbError(false); // Reset error state on try
-    setIsConnected(true); // Optimistically set connected
+    setDbError(false);
+    setIsConnected(true);
 
     const handleSyncError = (err: any) => {
-        // If we get a permission/not-found error, it means DB isn't set up yet
-        console.warn("Database Sync Failed - Switching to Offline Mode", err);
+        console.warn("Database Sync Failed", err);
         setIsConnected(false);
         setDbError(true);
     };
 
-    const unsubMembers = subscribeToCollection('members', (data) => setMembers(data.length ? data as Member[] : INITIAL_MEMBERS), handleSyncError);
-    const unsubBlogs = subscribeToCollection('blogs', (data) => setBlogs(data.length ? data as BlogPost[] : INITIAL_BLOGS), handleSyncError);
-    const unsubTax = subscribeToCollection('taxRecords', (data) => setTaxRecords(data.length ? data as TaxRecord[] : INITIAL_TAX_RECORDS), handleSyncError);
+    // FIXED: Removed fallbacks to INITIAL_DATA. Now trusts the DB completely.
+    const unsubMembers = subscribeToCollection('members', (data) => setMembers(data as Member[]), handleSyncError);
+    const unsubBlogs = subscribeToCollection('blogs', (data) => setBlogs(data as BlogPost[]), handleSyncError);
+    const unsubTax = subscribeToCollection('taxRecords', (data) => setTaxRecords(data as TaxRecord[]), handleSyncError);
     const unsubComplaints = subscribeToCollection('complaints', (data) => setComplaints(data as ComplaintType[]), handleSyncError);
-    const unsubSchemes = subscribeToCollection('schemes', (data) => setSchemes(data.length ? data as Scheme[] : INITIAL_SCHEMES), handleSyncError);
-    const unsubMeetings = subscribeToCollection('meetings', (data) => setMeetings(data.length ? data as MeetingRecord[] : INITIAL_MEETINGS), handleSyncError);
-    const unsubLinks = subscribeToCollection('links', (data) => setLinks(data.length ? data as ImportantLink[] : INITIAL_LINKS), handleSyncError);
+    const unsubSchemes = subscribeToCollection('schemes', (data) => setSchemes(data as Scheme[]), handleSyncError);
+    const unsubMeetings = subscribeToCollection('meetings', (data) => setMeetings(data as MeetingRecord[]), handleSyncError);
+    const unsubLinks = subscribeToCollection('links', (data) => setLinks(data as ImportantLink[]), handleSyncError);
     
-    // Return cleanup function
+    // Subscribe to Settings (Global Config)
+    const unsubSettings = subscribeToDocument('settings', 'global', (data) => {
+        if(data) setSettings({...INITIAL_SETTINGS, ...data}); 
+    }, handleSyncError);
+    
     return () => {
       if (unsubMembers) unsubMembers();
       if (unsubBlogs) unsubBlogs();
@@ -64,10 +66,10 @@ function App() {
       if (unsubSchemes) unsubSchemes();
       if (unsubMeetings) unsubMeetings();
       if (unsubLinks) unsubLinks();
+      if (unsubSettings) unsubSettings();
     };
-  }, [retryCount]); // Re-run when retryCount changes
+  }, [retryCount]);
 
-  // Trigger connection on mount or retry
   useEffect(() => {
     const cleanup = connectToDatabase();
     return () => {
@@ -77,70 +79,41 @@ function App() {
 
   const handleRetry = () => {
       setDbError(false);
-      setRetryCount(prev => prev + 1); // Trigger re-connection
+      setRetryCount(prev => prev + 1);
   };
 
   const handleAddComplaint = (newComplaint: ComplaintType) => {
     if (isConfigured() && isConnected && !dbError) {
         addToCollection('complaints', newComplaint);
     } else {
-        setComplaints(prev => [newComplaint, ...prev]); // Fallback
-        alert("Offline Mode: Complaint saved locally. Enable Firestore in Google Cloud Console to sync permanently.");
+        setComplaints(prev => [newComplaint, ...prev]);
+        alert("Offline Mode: Complaint saved locally.");
     }
+  };
+
+  // Wrapper for settings update to sync to cloud
+  const handleUpdateSettings = (newSettings: AppSettings) => {
+      setSettings(newSettings); // Optimistic update
+      if(isConfigured() && isConnected) {
+          saveSettings(newSettings);
+      }
   };
 
   return (
     <HashRouter>
       <div className="flex flex-col min-h-screen">
-        {/* Status Banners */}
-        {!isConnected && isConfigured() === false && (
-            <div className="bg-red-600 text-white text-center text-xs p-1 font-bold z-50">
-                DEMO MODE: Configure firebaseConfig.ts to enable Cloud Database & Storage.
-            </div>
-        )}
-        
         {dbError && (
-            <div className="bg-yellow-500 text-black text-center text-xs p-2 font-bold z-50 flex flex-col md:flex-row justify-center items-center gap-2">
-                <span>
-                    <i className="fas fa-exclamation-triangle mr-1"></i>
-                    Connection Failed: Ensure "Firestore Database" is ENABLED in Firebase Console.
-                </span>
-                <button 
-                    onClick={handleRetry} 
-                    className="bg-black text-white px-3 py-1 rounded text-xs hover:bg-gray-800 transition"
-                >
-                    <i className="fas fa-sync-alt mr-1"></i> Retry Connection
-                </button>
+            <div className="bg-yellow-500 text-black text-center text-xs p-2 font-bold z-50 flex justify-center gap-2">
+                <span><i className="fas fa-exclamation-triangle"></i> Database Connection Failed. Check Firebase Rules.</span>
+                <button onClick={handleRetry} className="underline bg-black text-white px-2 rounded">Retry</button>
             </div>
         )}
 
-        <Navbar 
-            logoUrl={settings.logoUrl} 
-            panchayatName={settings.panchayatName} 
-            flagUrl={settings.flagUrl}
-            marqueeText={settings.marqueeText}
-        />
+        <Navbar logoUrl={settings.logoUrl} panchayatName={settings.panchayatName} flagUrl={settings.flagUrl} marqueeText={settings.marqueeText} />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home settings={settings} members={members} links={links} notices={blogs} />} />
-            
-            <Route 
-              path="/admin" 
-              element={
-                <AdminDashboard 
-                  members={members} setMembers={setMembers}
-                  settings={settings} setSettings={setSettings}
-                  taxRecords={taxRecords} setTaxRecords={setTaxRecords}
-                  complaints={complaints} setComplaints={setComplaints}
-                  blogs={blogs} setBlogs={setBlogs}
-                  schemes={schemes} setSchemes={setSchemes}
-                  meetings={meetings} setMeetings={setMeetings}
-                  links={links} setLinks={setLinks}
-                  isCloudConnected={isConnected && !dbError}
-                />
-              } 
-            />
-            
+            <Route path="/admin" element={<AdminDashboard members={members} setMembers={setMembers} settings={settings} setSettings={handleUpdateSettings} taxRecords={taxRecords} setTaxRecords={setTaxRecords} complaints={complaints} setComplaints={setComplaints} blogs={blogs} setBlogs={setBlogs} schemes={schemes} setSchemes={setSchemes} meetings={meetings} setMeetings={setMeetings} links={links} setLinks={setLinks} isCloudConnected={isConnected && !dbError} />} />
             <Route path="/tax" element={<TaxPayment records={taxRecords} settings={settings} />} />
             <Route path="/complaint" element={<Complaint onSubmit={handleAddComplaint} />} />
             <Route path="/blog" element={<Blog posts={blogs} />} />
