@@ -107,6 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const executeDelete = async (collection: string, id: string, localUpdate: () => void) => {
       if (isConfigured()) {
+          // Await the deletion properly
           const success = await deleteFromCollection(collection, id);
           if (!success) return;
       } else {
