@@ -40,9 +40,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authError, setAuthError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   
-  // Login Form
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Login Form State
+  const [email, setEmail] = useState('mithunpagadwar8@gmail.com');
+  const [password, setPassword] = useState('Jitesh$@0824');
 
   // Forms State
   const [newMember, setNewMember] = useState<Partial<Member>>({ type: 'member', name: '', position: '', mobile: '', address: '', photoUrl: '' });
@@ -53,6 +53,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newMeeting, setNewMeeting] = useState<Partial<MeetingRecord>>({ type: 'Gram Sabha', mediaType: 'image', title: '', description: '' });
   const [newLink, setNewLink] = useState<Partial<ImportantLink>>({ title: '', url: '', description: '' });
 
+  // Monitor Authentication State
   useEffect(() => {
       const unsubscribe = onAuthStateChanged(auth, (user) => {
           setCurrentUser(user);
@@ -65,11 +66,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     setAuthError('');
     setIsRegistering(false);
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-          handleRegister(); // Auto-register demo convenience
+          handleRegister(); 
+      } else if (error.code === 'auth/wrong-password') {
+          setAuthError('Incorrect Password.');
       } else {
           setAuthError(error.message);
       }
@@ -77,6 +81,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleRegister = async () => {
+      setAuthError('');
       setIsRegistering(true);
       try {
           await createUserWithEmailAndPassword(auth, email, password);
@@ -86,54 +91,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
   };
 
-  const handleLogout = async () => { await signOut(auth); };
-
-  // Helper Wrappers
-  const executeAction = (collection: string, data: any, localUpdate: () => void) => {
-      if (isConfigured()) addToCollection(collection, data);
-      else localUpdate();
-  };
-  const executeDelete = (collection: string, id: string, localUpdate: () => void) => {
-      if (isConfigured()) deleteFromCollection(collection, id);
-      else localUpdate();
+  const handleLogout = async () => {
+      await signOut(auth);
   };
 
-  // HANDLERS
+  // --- CLOUD WRAPPER ---
+  const executeAction = async (collection: string, data: any, localUpdate: () => void) => {
+      if (isConfigured()) {
+          const success = await addToCollection(collection, data);
+          if (!success) return; 
+      } else {
+          localUpdate();
+      }
+  };
+
+  const executeDelete = async (collection: string, id: string, localUpdate: () => void) => {
+      if (isConfigured()) {
+          const success = await deleteFromCollection(collection, id);
+          if (!success) return;
+      } else {
+          localUpdate();
+      }
+  };
+
+  const executeUpdate = async (collection: string, id: string, data: any, localUpdate: () => void) => {
+      if (isConfigured()) {
+          const success = await updateInCollection(collection, id, data);
+          if (!success) return;
+      } else {
+          localUpdate();
+      }
+  };
+
+  // --- HANDLERS ---
   const handleAddMember = () => {
     if(!newMember.name) { alert("Name is required"); return; }
-    const memberToAdd = { ...newMember, id: Date.now().toString(), photoUrl: newMember.photoUrl || 'https://ui-avatars.com/api/?name=' + newMember.name } as Member;
+    const memberToAdd = { ...newMember, id: Date.now().toString(), photoUrl: newMember.photoUrl || 'https://ui-avatars.com/api/?name=' + newMember.name + '&background=random' } as Member;
     executeAction('members', memberToAdd, () => setMembers(prev => [...prev, memberToAdd]));
     setNewMember({ type: 'member', name: '', position: '', mobile: '', address: '', photoUrl: '' });
   };
   
   const handleAddBlog = () => { 
       if(!newPost.title) return; 
-      const post = { ...newPost, id: Date.now().toString(), publishDate: new Date().toLocaleDateString(), author: 'Admin' } as BlogPost;
+      const post = { ...newPost, id: Date.now().toString(), publishDate: new Date().toLocaleDateString(), author: 'Admin', category: 'General' } as BlogPost;
       executeAction('blogs', post, () => setBlogs(prev => [post, ...prev]));
       setNewPost({ mediaType: 'image', category: 'General', title: '', content: '' }); 
   };
-
+  
   const handleAddNotice = () => { 
-    if(!newNotice.title) return; 
-    const notice = { ...newNotice, id: Date.now().toString(), publishDate: new Date().toLocaleDateString(), author: 'Admin', category: 'Notice' } as BlogPost;
-    executeAction('blogs', notice, () => setBlogs(prev => [notice, ...prev]));
-    setNewNotice({ mediaType: 'image', category: 'Notice', title: '', content: '' }); 
+      if(!newNotice.title) return; 
+      const notice = { ...newNotice, id: Date.now().toString(), publishDate: new Date().toLocaleDateString(), author: 'Admin', category: 'Notice' } as BlogPost;
+      executeAction('blogs', notice, () => setBlogs(prev => [notice, ...prev]));
+      setNewNotice({ mediaType: 'image', category: 'Notice', title: '', content: '' }); 
   };
 
   const handleAddTax = () => { 
       if(!newTaxRecord.propertyId) return; 
       const tax = { ...newTaxRecord, id: Date.now().toString(), date: new Date().toISOString() } as TaxRecord;
       executeAction('taxRecords', tax, () => setTaxRecords(prev => [...prev, tax]));
-      setNewTaxRecord({ paymentType: 'House Tax', status: 'Pending', amount: 0, propertyId: 'PROP-', ownerName: '' }); 
+      setNewTaxRecord({ paymentType: 'House Tax', status: 'Pending', amount: 0, propertyId: '', ownerName: '' }); 
   };
 
-  // ... (Other handlers remain similar, skipping strictly for brevity, functionality preserved via state)
-  const handleAddScheme = () => { const s = { ...newScheme, id: Date.now().toString() } as Scheme; executeAction('schemes', s, () => setSchemes(prev => [...prev, s])); setNewScheme({name:'', description:'', eligibility:''}); };
-  const handleAddMeeting = () => { const m = { ...newMeeting, id: Date.now().toString() } as MeetingRecord; executeAction('meetings', m, () => setMeetings(prev => [...prev, m])); setNewMeeting({type:'Gram Sabha', title:'', description:''}); };
-  const handleAddLink = () => { const l = { ...newLink, id: Date.now().toString() } as ImportantLink; executeAction('links', l, () => setLinks(prev => [...prev, l])); setNewLink({title:'', url:''}); };
+  const handleAddScheme = () => { 
+      if(!newScheme.name) return; 
+      const scheme = { ...newScheme, id: Date.now().toString() } as Scheme;
+      executeAction('schemes', scheme, () => setSchemes(prev => [...prev, scheme]));
+      setNewScheme({ name: '', description: '', eligibility: '' }); 
+  };
 
-  const deleteItem = (collection: string, id: string, setter: any) => {
-      executeDelete(collection, id, () => setter((prev: any[]) => prev.filter(i => i.id !== id)));
+  const handleAddMeeting = () => { 
+      if(!newMeeting.title) return; 
+      const meeting = { ...newMeeting, id: Date.now().toString() } as MeetingRecord;
+      executeAction('meetings', meeting, () => setMeetings(prev => [...prev, meeting]));
+      setNewMeeting({ type: 'Gram Sabha', mediaType: 'image', title: '', description: '' }); 
+  };
+
+  const handleAddLink = () => { 
+      if(!newLink.title || !newLink.url) return; 
+      const link = { ...newLink, id: Date.now().toString() } as ImportantLink;
+      executeAction('links', link, () => setLinks(prev => [...prev, link]));
+      setNewLink({ title: '', url: '', description: '' }); 
+  };
+
+  const deleteItem = async (collection: string, id: string, setter: any) => {
+      if (window.confirm("Are you sure you want to delete this item?")) {
+          await executeDelete(collection, id, () => setter((prev: any[]) => prev.filter(i => i.id !== id)));
+      }
+  };
+
+  const deleteTax = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('taxRecords', id, setTaxRecords); };
+  const deleteMember = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('members', id, setMembers); };
+  const deleteBlogPost = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('blogs', id, setBlogs); };
+  const deleteScheme = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('schemes', id, setSchemes); };
+  const deleteMeeting = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('meetings', id, setMeetings); };
+  const deleteLink = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('links', id, setLinks); };
+  const deleteComplaint = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('complaints', id, setComplaints); };
+
+  const toggleComplaintStatus = (id: string, currentStatus: string) => {
+      const newStatus = currentStatus === 'Open' ? 'Resolved' : 'Open';
+      executeUpdate('complaints', id, { status: newStatus }, () => {
+          if(setComplaints) setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: newStatus as any } : c));
+      });
   };
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
@@ -154,11 +212,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
              <button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded shadow">
                 {isRegistering ? 'Registering...' : 'Secure Login'}
              </button>
-             <div className="text-center">
-                 <button type="button" className="text-sm text-blue-600 border border-blue-200 px-4 py-2 rounded bg-blue-50 mt-2 flex items-center justify-center gap-2 mx-auto w-full">
-                     <i className="fab fa-google"></i> Sign in with Google (Simulated)
-                 </button>
-             </div>
            </form>
         </div>
       </div>
@@ -166,7 +219,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
         {/* Sidebar */}
         <div className="w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col hidden md:flex shadow-2xl">
             <div className="p-6 font-bold text-lg border-b border-gray-700 bg-orange-600">
@@ -230,7 +283,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="font-bold truncate">{m.name}</div>
                                             <div className="text-xs text-gray-500 uppercase">{m.position}</div>
                                         </div>
-                                        <button onClick={() => deleteItem('members', m.id, setMembers)} className="text-red-500 hover:text-red-700"><i className="fas fa-trash"></i></button>
+                                        <button onClick={(e) => deleteMember(e, m.id)} className="text-red-500 hover:text-red-700"><i className="fas fa-trash"></i></button>
                                     </div>
                                 ))}
                             </div>
@@ -277,7 +330,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <td className="p-2">{t.ownerName}</td>
                                             <td className="p-2"><span className="bg-gray-200 px-2 py-1 rounded text-xs">{t.paymentType}</span></td>
                                             <td className="p-2">₹{t.amount}</td>
-                                            <td className="p-2"><button onClick={() => deleteItem('taxRecords', t.id, setTaxRecords)} className="text-red-500"><i className="fas fa-trash"></i></button></td>
+                                            <td className="p-2"><button onClick={(e) => deleteTax(e, t.id)} className="text-red-500"><i className="fas fa-trash"></i></button></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -309,9 +362,284 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                              {blogs.filter(b => b.category !== 'Notice').map(b => (
                                  <div key={b.id} className="flex justify-between items-center border p-2 rounded bg-gray-50">
                                      <span className="font-bold">{b.title}</span>
-                                     <button onClick={() => deleteItem('blogs', b.id, setBlogs)} className="text-red-500"><i className="fas fa-trash"></i></button>
+                                     <button onClick={(e) => deleteBlogPost(e, b.id)} className="text-red-500"><i className="fas fa-trash"></i></button>
                                  </div>
                              ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* --- NOTICES SECTION --- */}
+                {activeTab === 'notices' && (
+                    <div className="space-y-6">
+                         <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-xl font-bold mb-4 border-b pb-2 text-gov-primary"><i className="fas fa-bell mr-2"></i> Publish Notice</h3>
+                            <div className="space-y-4 mb-6 bg-yellow-50 p-4 rounded border border-yellow-200">
+                                <input className="w-full border p-2 font-bold" placeholder="Notice Title" value={newNotice.title || ''} onChange={e => setNewNotice({...newNotice, title: e.target.value})} />
+                                <textarea className="w-full border p-2 h-20" placeholder="Notice Details..." value={newNotice.content || ''} onChange={e => setNewNotice({...newNotice, content: e.target.value})}></textarea>
+                                
+                                <div className="p-2 border border-yellow-300 rounded bg-white">
+                                    <p className="text-sm font-bold text-gray-600 mb-1">Notice Image/File Upload:</p>
+                                    <FileUpload label="Upload Notice Image" accept="image/*,.pdf" onFileSelect={(url) => setNewNotice({...newNotice, mediaUrl: url})} />
+                                </div>
+
+                                <button onClick={handleAddNotice} className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded font-bold">Publish Notice</button>
+                            </div>
+                         </div>
+                         <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="font-bold mb-4">Active Notices</h3>
+                            <div className="space-y-2">
+                                {blogs.filter(b => b.category === 'Notice').length === 0 && <p className="text-gray-500 italic">No notices found.</p>}
+                                {blogs.filter(b => b.category === 'Notice').map(notice => (
+                                    <div key={notice.id} className="flex justify-between items-center bg-gray-50 p-3 rounded border-l-4 border-yellow-500">
+                                        <div className="flex items-center gap-3">
+                                            {notice.mediaUrl && <img src={notice.mediaUrl} className="w-10 h-10 object-cover rounded" alt="Notice" />}
+                                            <div>
+                                                <div className="font-bold">{notice.title}</div>
+                                                <div className="text-xs text-gray-500">{notice.publishDate}</div>
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={(e) => deleteBlogPost(e, notice.id)} className="bg-red-500 text-white w-8 h-8 rounded flex items-center justify-center hover:bg-red-700 shadow"><i className="fas fa-trash"></i></button>
+                                    </div>
+                                ))}
+                            </div>
+                         </div>
+                    </div>
+                )}
+
+                {/* --- SCHEMES SECTION --- */}
+                {activeTab === 'schemes' && (
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-xl font-bold mb-4 border-b pb-2 text-gov-primary"><i className="fas fa-hand-holding-heart mr-2"></i> Government Schemes</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 bg-gray-50 p-4 rounded">
+                            <input placeholder="Scheme Name" className="border p-2 rounded" value={newScheme.name || ''} onChange={e => setNewScheme({...newScheme, name: e.target.value})} />
+                            <input placeholder="Eligibility Criteria" className="border p-2 rounded" value={newScheme.eligibility || ''} onChange={e => setNewScheme({...newScheme, eligibility: e.target.value})} />
+                            <input placeholder="Description" className="border p-2 rounded" value={newScheme.description || ''} onChange={e => setNewScheme({...newScheme, description: e.target.value})} />
+                            <input type="date" className="border p-2 rounded" value={newScheme.deadline || ''} onChange={e => setNewScheme({...newScheme, deadline: e.target.value})} />
+                            <div className="col-span-1 md:col-span-2">
+                                    <FileUpload label="Scheme PDF/Image" accept=".pdf,image/*" onFileSelect={(url) => setNewScheme({...newScheme, docUrl: url})} />
+                            </div>
+                            <button onClick={handleAddScheme} className="bg-green-600 text-white font-bold p-2 rounded">Add Scheme</button>
+                        </div>
+                        <ul className="space-y-2">
+                            {schemes.map(s => (
+                                <li key={s.id} className="flex justify-between items-center bg-gray-50 p-3 rounded border">
+                                    <div>
+                                        <div className="font-semibold">{s.name}</div>
+                                        <div className="text-xs text-gray-500">Elig: {s.eligibility}</div>
+                                    </div>
+                                    <button type="button" onClick={(e) => deleteScheme(e, s.id)} className="bg-red-500 text-white w-8 h-8 rounded flex items-center justify-center hover:bg-red-700 shadow"><i className="fas fa-trash"></i></button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {/* --- MEETINGS SECTION --- */}
+                {activeTab === 'meetings' && (
+                    <div className="bg-white p-6 rounded-lg shadow h-full">
+                         <h3 className="text-xl font-bold mb-4 border-b pb-2 text-gov-primary">Manage Meetings (Sabha)</h3>
+                         <div className="bg-gray-50 p-4 rounded mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input className="border p-2" placeholder="Meeting Title" value={newMeeting.title || ''} onChange={e => setNewMeeting({...newMeeting, title: e.target.value})} />
+                            <select className="border p-2" value={newMeeting.type} onChange={e => setNewMeeting({...newMeeting, type: e.target.value as any})}>
+                                <option value="Gram Sabha">Gram Sabha</option>
+                                <option value="Masik Sabha">Masik Sabha</option>
+                                <option value="Bal Sabha">Bal Sabha</option>
+                                <option value="Ward Sabha">Ward Sabha</option>
+                            </select>
+                            <input type="date" className="border p-2" value={newMeeting.date || ''} onChange={e => setNewMeeting({...newMeeting, date: e.target.value})} />
+                            <input className="border p-2" placeholder="Description/Agenda" value={newMeeting.description || ''} onChange={e => setNewMeeting({...newMeeting, description: e.target.value})} />
+                            <div className="col-span-1 md:col-span-2">
+                                <FileUpload label="Meeting Photo/Video/Minutes" accept="image/*,video/*,.pdf" onFileSelect={(url) => setNewMeeting({...newMeeting, mediaUrl: url})} />
+                            </div>
+                            <button onClick={handleAddMeeting} className="col-span-1 md:col-span-2 bg-gov-secondary text-white py-2 font-bold rounded">Record Meeting</button>
+                         </div>
+                         
+                         <div className="grid gap-4">
+                            {meetings.map(m => (
+                                <div key={m.id} className="border p-4 rounded flex justify-between items-center hover:bg-gray-50">
+                                    <div>
+                                        <span className={`text-xs font-bold px-2 py-1 rounded text-white ${m.type === 'Gram Sabha' ? 'bg-purple-600' : 'bg-blue-600'}`}>{m.type}</span>
+                                        <h4 className="font-bold mt-1">{m.title}</h4>
+                                        <p className="text-sm text-gray-500">{m.date}</p>
+                                    </div>
+                                    <button type="button" onClick={(e) => deleteMeeting(e, m.id)} className="bg-red-500 text-white w-8 h-8 rounded flex items-center justify-center hover:bg-red-700 shadow"><i className="fas fa-trash"></i></button>
+                                </div>
+                            ))}
+                         </div>
+                    </div>
+                )}
+
+                {/* --- COMPLAINTS SECTION --- */}
+                {activeTab === 'complaints' && (
+                    <div className="bg-white p-6 rounded-lg shadow">
+                         <div className="flex justify-between items-center mb-6 border-b pb-2">
+                             <h3 className="text-xl font-bold text-gov-primary"><i className="fas fa-clipboard-list mr-2"></i> Citizen Complaints (Grievance Redressal)</h3>
+                             <span className="bg-red-100 text-red-800 text-sm font-bold px-3 py-1 rounded-full">Total: {complaints.length}</span>
+                         </div>
+                         
+                         {complaints.length === 0 ? (
+                             <div className="text-center py-12 text-gray-500">
+                                 <i className="fas fa-check-circle text-4xl mb-3 text-green-500"></i>
+                                 <p>No complaints found.</p>
+                             </div>
+                         ) : (
+                             <div className="grid gap-6">
+                                 {complaints.map(c => (
+                                     <div key={c.id} className={`border rounded-lg p-4 flex flex-col md:flex-row gap-4 ${c.status === 'Resolved' ? 'bg-gray-50 border-gray-200' : 'bg-white border-red-200 shadow-sm'}`}>
+                                         {/* Photos Column */}
+                                         <div className="flex-shrink-0 flex gap-2 md:flex-col md:w-32">
+                                             {c.applicantPhotoUrl ? (
+                                                 <div className="w-20 h-20 bg-gray-200 rounded overflow-hidden mx-auto border">
+                                                    <img src={c.applicantPhotoUrl} className="w-full h-full object-cover" alt="Applicant" />
+                                                 </div>
+                                             ) : <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center mx-auto text-gray-400 text-xs text-center p-1">No Photo</div>}
+                                             
+                                             {c.docUrl && (
+                                                <a href={c.docUrl} target="_blank" rel="noreferrer" className="text-xs bg-blue-100 text-blue-700 p-2 rounded text-center hover:bg-blue-200">
+                                                    <i className="fas fa-file-alt mr-1"></i> View Doc
+                                                </a>
+                                             )}
+                                         </div>
+
+                                         {/* Info Column */}
+                                         <div className="flex-1">
+                                             <div className="flex justify-between items-start mb-2">
+                                                 <div>
+                                                     <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="font-bold text-lg text-gray-800">{c.applicantName}</h4>
+                                                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">{c.category}</span>
+                                                     </div>
+                                                     <p className="text-sm text-gray-600"><i className="fas fa-phone mr-1"></i> {c.mobile}</p>
+                                                     <p className="text-xs text-gray-400 mt-1">Date: {c.date} | ID: {c.id}</p>
+                                                 </div>
+                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${c.status === 'Open' ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 text-white'}`}>
+                                                     {c.status}
+                                                 </span>
+                                             </div>
+                                             <div className="bg-gray-50 p-3 rounded text-sm text-gray-700 border">
+                                                 <span className="font-bold block text-xs text-gray-500 mb-1">COMPLAINT DETAILS:</span>
+                                                 {c.description}
+                                             </div>
+                                             
+                                             <div className="mt-4 flex gap-2 justify-end">
+                                                 <button 
+                                                    onClick={() => toggleComplaintStatus(c.id, c.status)}
+                                                    className={`px-4 py-2 rounded text-sm font-bold shadow transition ${c.status === 'Open' ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`}
+                                                 >
+                                                     {c.status === 'Open' ? <><i className="fas fa-check mr-2"></i> Mark Resolved</> : <><i className="fas fa-redo mr-2"></i> Re-open</>}
+                                                 </button>
+                                                 <button 
+                                                    onClick={(e) => deleteComplaint(e, c.id)}
+                                                    className="bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-red-100 hover:text-red-600 transition"
+                                                    title="Delete Record"
+                                                 >
+                                                     <i className="fas fa-trash"></i>
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 ))}
+                             </div>
+                         )}
+                    </div>
+                )}
+
+                {/* --- SETTINGS SECTION --- */}
+                {activeTab === 'settings' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-xl font-bold mb-4 text-gov-primary">Global Location & Contact Settings</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Panchayat Name</label>
+                                    <input className="w-full border p-2 rounded" value={settings.panchayatName} onChange={e => setSettings({...settings, panchayatName: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Taluka (Panchayat Samiti)</label>
+                                    <input className="w-full border p-2 rounded" value={settings.taluka} onChange={e => setSettings({...settings, taluka: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">District</label>
+                                    <input className="w-full border p-2 rounded" value={settings.district} onChange={e => setSettings({...settings, district: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Contact Email</label>
+                                    <input className="w-full border p-2 rounded" value={settings.email} onChange={e => setSettings({...settings, email: e.target.value})} />
+                                </div>
+                                <div className="md:col-span-2">
+                                     <label className="text-xs font-bold text-gray-500">Scrolling Notice Text (Marquee)</label>
+                                     <input className="w-full border p-2 rounded bg-yellow-50" value={settings.marqueeText || ''} onChange={e => setSettings({...settings, marqueeText: e.target.value})} placeholder="Enter scrolling notice text here..." />
+                                </div>
+                                
+                                <div className="md:col-span-2 border-t pt-4 mt-2">
+                                     <label className="text-sm font-bold text-green-800 block mb-2"><i className="fab fa-google-pay mr-1"></i> Tax UPI IDs (Tax-wise Collection)</label>
+                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                         <div>
+                                            <label className="text-xs font-bold text-gray-500">House Tax UPI ID (घरपट्टी)</label>
+                                            <input className="w-full border-2 border-orange-200 p-2 rounded bg-orange-50" value={settings.upiIdHouse || ''} onChange={e => setSettings({...settings, upiIdHouse: e.target.value})} placeholder="e.g. house@oksbi" />
+                                         </div>
+                                         <div>
+                                            <label className="text-xs font-bold text-gray-500">Water Tax UPI ID (पाणीपट्टी)</label>
+                                            <input className="w-full border-2 border-blue-200 p-2 rounded bg-blue-50" value={settings.upiIdWater || ''} onChange={e => setSettings({...settings, upiIdWater: e.target.value})} placeholder="e.g. water@oksbi" />
+                                         </div>
+                                         <div>
+                                            <label className="text-xs font-bold text-gray-500">Special Water Tax UPI ID (खास पाणीपट्टी)</label>
+                                            <input className="w-full border-2 border-purple-200 p-2 rounded bg-purple-50" value={settings.upiIdSpecialWater || ''} onChange={e => setSettings({...settings, upiIdSpecialWater: e.target.value})} placeholder="e.g. special@oksbi" />
+                                         </div>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         {/* Important Links moved to Settings */}
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-xl font-bold mb-4 border-b pb-2 text-gov-primary">External Certificate Links</h3>
+                             <div className="flex flex-col gap-2 mb-4 bg-gray-50 p-4 rounded">
+                                <input className="border p-2 w-full" placeholder="Link Title (e.g. Birth Certificate)" value={newLink.title || ''} onChange={e => setNewLink({...newLink, title: e.target.value})} />
+                                <input className="border p-2 w-full" placeholder="URL (https://...)" value={newLink.url || ''} onChange={e => setNewLink({...newLink, url: e.target.value})} />
+                                <input className="border p-2 w-full" placeholder="Description (Brief info about certificate)" value={newLink.description || ''} onChange={e => setNewLink({...newLink, description: e.target.value})} />
+                                <button onClick={handleAddLink} className="bg-blue-600 text-white px-4 py-2 rounded font-bold w-full md:w-auto">Add Link</button>
+                             </div>
+                             <div className="space-y-2">
+                                {links.map(l => (
+                                    <div key={l.id} className="bg-blue-50 text-blue-800 p-3 rounded flex justify-between items-center border border-blue-100">
+                                        <div>
+                                            <div className="font-bold">{l.title}</div>
+                                            <div className="text-xs text-blue-600">{l.url}</div>
+                                            {l.description && <div className="text-xs text-gray-500 mt-1 italic">{l.description}</div>}
+                                        </div>
+                                        <button type="button" onClick={(e) => deleteLink(e, l.id)} className="bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-700 ml-2 text-xs">&times;</button>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-xl font-bold mb-4 text-gov-primary">Branding (Logo & Slider)</h3>
+                            <div className="flex items-center gap-4 mb-6">
+                                <img src={settings.logoUrl} className="w-16 h-16 border p-1" />
+                                <div className="flex-1">
+                                    <FileUpload label="Update Logo" accept="image/*" onFileSelect={(url) => setSettings({...settings, logoUrl: url})} />
+                                </div>
+                            </div>
+                            {/* Added Flag Upload */}
+                            <div className="flex items-center gap-4 mb-6 border-t pt-4">
+                                <img src={settings.flagUrl || 'https://media.giphy.com/media/l3vRlT2k2L35Cnn5C/giphy.gif'} className="w-16 h-12 border p-1 object-cover" />
+                                <div className="flex-1">
+                                    <FileUpload label="Update Tiranga (GIF/Image)" accept="image/*" onFileSelect={(url) => setSettings({...settings, flagUrl: url})} />
+                                </div>
+                            </div>
+
+                            <div className="border-t pt-4">
+                                <label className="font-bold block mb-2">Slider Images</label>
+                                <div className="flex gap-2 mb-2 overflow-x-auto">
+                                    {settings.sliderImages.map((src, i) => (
+                                        <img key={i} src={src} className="w-20 h-12 object-cover border" />
+                                    ))}
+                                </div>
+                                <FileUpload label="Add Slider Image" accept="image/*" onFileSelect={(url) => setSettings({...settings, sliderImages: [...settings.sliderImages, url]})} />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -333,15 +661,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                          </div>
                      </div>
                 )}
-                 
-                 {/* Reusing existing logic for meetings/schemes/notices via simple placeholders or existing logic if needed. Kept concise for XML limit. */}
-                 {(activeTab === 'meetings' || activeTab === 'schemes' || activeTab === 'notices' || activeTab === 'complaints' || activeTab === 'settings') && (
-                     <div className="bg-white p-10 text-center text-gray-500">
-                         <i className="fas fa-tools text-4xl mb-4"></i>
-                         <p>Please use the specific sections (Members, Tax, Blog) to see the major changes. Other sections remain functional as per previous setup.</p>
-                         <p className="text-xs mt-2">(Code minimized for update efficiency. Full features available in previous iterations.)</p>
-                     </div>
-                 )}
             </div>
         </div>
     </div>
