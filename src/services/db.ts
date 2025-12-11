@@ -12,8 +12,8 @@ export const subscribeToCollection = (
     const q = query(collection(db, collectionName));
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
-        ...doc.data(), // First spread data
-        id: doc.id     // THEN overwrite id with Firestore Document ID (CRITICAL FIX)
+        ...doc.data(), // 1. Load data first
+        id: doc.id     // 2. OVERWRITE with Firestore's Real Document ID (Crucial for Delete)
       }));
       callback(data);
     }, (error) => {
@@ -53,7 +53,7 @@ export const subscribeToDocument = (
 
 export const addToCollection = async (collectionName: string, data: any) => {
   try {
-    // Remove 'id' from data if it exists to avoid confusion, Firestore generates its own
+    // Remove 'id' from data if it exists to avoid confusion, let Firestore generate its own
     const { id, ...cleanData } = data; 
     await addDoc(collection(db, collectionName), cleanData);
     return true;
@@ -71,6 +71,7 @@ export const deleteFromCollection = async (collectionName: string, id: string) =
         return false;
     }
     await deleteDoc(doc(db, collectionName, id));
+    console.log("Item deleted successfully");
     return true;
   } catch (error: any) {
     console.error("Error deleting document: ", error);
@@ -98,7 +99,7 @@ export const saveSettings = async (settings: any) => {
         return true;
     } catch (error: any) {
         console.error("Settings Sync Failed", error);
-        alert(`Settings Save Failed: ${error.message}`);
+        // alert(`Settings Save Failed: ${error.message}`);
         return false;
     }
 };
