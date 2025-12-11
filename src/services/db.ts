@@ -1,8 +1,8 @@
 
 import { db } from '../firebaseConfig';
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot, query } from 'firebase/firestore';
 
-// Generic Subscribe Function (Realtime Listener)
+// Subscribe to a Collection (List)
 export const subscribeToCollection = (
   collectionName: string, 
   callback: (data: any[]) => void,
@@ -27,31 +27,52 @@ export const subscribeToCollection = (
   }
 };
 
-// Generic Add Function
+// Subscribe to a Single Document (e.g., Settings)
+export const subscribeToDocument = (
+    collectionName: string,
+    docId: string,
+    callback: (data: any) => void,
+    onError?: (error: any) => void
+) => {
+    try {
+        return onSnapshot(doc(db, collectionName, docId), (doc) => {
+            if (doc.exists()) {
+                callback(doc.data());
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error(`Error syncing document ${collectionName}/${docId}:`, error);
+            if(onError) onError(error);
+        });
+    } catch (e) {
+        if(onError) onError(e);
+        return () => {};
+    }
+}
+
 export const addToCollection = async (collectionName: string, data: any) => {
   try {
     await addDoc(collection(db, collectionName), data);
     return true;
   } catch (error: any) {
     console.error("Error adding document: ", error);
-    alert(`Error Adding Data: ${error.message}\nCheck Firebase Rules.`);
+    alert(`Upload Error: ${error.message}\nCheck Firebase Rules.`);
     return false;
   }
 };
 
-// Generic Delete Function
 export const deleteFromCollection = async (collectionName: string, id: string) => {
   try {
     await deleteDoc(doc(db, collectionName, id));
     return true;
   } catch (error: any) {
     console.error("Error deleting document: ", error);
-    alert(`Delete Failed: ${error.message}\n\nSolution: Go to Firebase Console > Firestore Database > Rules tab.\nChange 'allow write: if false' to 'allow write: if request.auth != null'`);
+    alert(`Delete Failed: ${error.message}\n\nGo to Firebase Console > Firestore Database > Rules.\nEnsure it says: allow write: if request.auth != null;`);
     return false;
   }
 };
 
-// Generic Update Function
 export const updateInCollection = async (collectionName: string, id: string, data: any) => {
     try {
         await updateDoc(doc(db, collectionName, id), data);
@@ -63,6 +84,15 @@ export const updateInCollection = async (collectionName: string, id: string, dat
     }
 };
 
+// Save Settings (Upsert)
 export const saveSettings = async (settings: any) => {
-    console.log("Settings synced to cloud"); 
+    try {
+        await setDoc(doc(db, 'settings', 'global'), settings);
+        console.log("Settings synced to cloud");
+        return true;
+    } catch (error: any) {
+        console.error("Settings Sync Failed", error);
+        alert(`Settings Save Failed: ${error.message}`);
+        return false;
+    }
 };
