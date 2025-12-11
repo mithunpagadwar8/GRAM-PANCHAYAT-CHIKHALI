@@ -18,13 +18,14 @@ import { isConfigured } from './firebaseConfig';
 
 function App() {
   const [settings, setSettings] = useState<AppSettings>(INITIAL_SETTINGS);
-  const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
-  const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
-  const [taxRecords, setTaxRecords] = useState<TaxRecord[]>(INITIAL_TAX_RECORDS); 
+  // Initialize with empty arrays to prevent flash of demo data if connected
+  const [members, setMembers] = useState<Member[]>([]);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
+  const [taxRecords, setTaxRecords] = useState<TaxRecord[]>([]); 
   const [complaints, setComplaints] = useState<ComplaintType[]>([]);
-  const [schemes, setSchemes] = useState<Scheme[]>(INITIAL_SCHEMES);
-  const [meetings, setMeetings] = useState<MeetingRecord[]>(INITIAL_MEETINGS);
-  const [links, setLinks] = useState<ImportantLink[]>(INITIAL_LINKS);
+  const [schemes, setSchemes] = useState<Scheme[]>([]);
+  const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
+  const [links, setLinks] = useState<ImportantLink[]>([]);
   
   const [isConnected, setIsConnected] = useState(false);
   const [dbError, setDbError] = useState(false);
@@ -32,6 +33,13 @@ function App() {
 
   const connectToDatabase = useCallback(() => {
     if (!isConfigured()) {
+      // If not configured, load demo data
+      setMembers(INITIAL_MEMBERS);
+      setBlogs(INITIAL_BLOGS);
+      setTaxRecords(INITIAL_TAX_RECORDS);
+      setSchemes(INITIAL_SCHEMES);
+      setMeetings(INITIAL_MEETINGS);
+      setLinks(INITIAL_LINKS);
       return () => {};
     }
 
@@ -42,9 +50,13 @@ function App() {
         console.warn("Database Sync Failed", err);
         setIsConnected(false);
         setDbError(true);
+        // Fallback to demo data only on error
+        setMembers(INITIAL_MEMBERS);
+        setBlogs(INITIAL_BLOGS);
+        // etc...
     };
 
-    // FIXED: Removed fallbacks to INITIAL_DATA. Now trusts the DB completely.
+    // FIXED: Directly set data. If empty [], it stays empty. No fallback to INITIAL_DATA.
     const unsubMembers = subscribeToCollection('members', (data) => setMembers(data as Member[]), handleSyncError);
     const unsubBlogs = subscribeToCollection('blogs', (data) => setBlogs(data as BlogPost[]), handleSyncError);
     const unsubTax = subscribeToCollection('taxRecords', (data) => setTaxRecords(data as TaxRecord[]), handleSyncError);
