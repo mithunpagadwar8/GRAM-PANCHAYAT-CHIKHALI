@@ -50,13 +50,11 @@ function App() {
         console.warn("Database Sync Failed", err);
         setIsConnected(false);
         setDbError(true);
-        // Fallback to demo data only on error
+        // Only load demo data if there is an error, otherwise respect empty DB
         setMembers(INITIAL_MEMBERS);
-        setBlogs(INITIAL_BLOGS);
-        // etc...
     };
 
-    // FIXED: Directly set data. If empty [], it stays empty. No fallback to INITIAL_DATA.
+    // FIXED: Directly set data. If DB is empty, state is empty. No fallback to INITIAL_DATA.
     const unsubMembers = subscribeToCollection('members', (data) => setMembers(data as Member[]), handleSyncError);
     const unsubBlogs = subscribeToCollection('blogs', (data) => setBlogs(data as BlogPost[]), handleSyncError);
     const unsubTax = subscribeToCollection('taxRecords', (data) => setTaxRecords(data as TaxRecord[]), handleSyncError);
