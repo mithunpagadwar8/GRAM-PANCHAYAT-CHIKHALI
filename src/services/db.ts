@@ -12,8 +12,8 @@ export const subscribeToCollection = (
     const q = query(collection(db, collectionName));
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+        ...doc.data(), // First spread data
+        id: doc.id     // THEN overwrite id with Firestore Document ID (CRITICAL FIX)
       }));
       callback(data);
     }, (error) => {
@@ -53,7 +53,9 @@ export const subscribeToDocument = (
 
 export const addToCollection = async (collectionName: string, data: any) => {
   try {
-    await addDoc(collection(db, collectionName), data);
+    // Remove 'id' from data if it exists to avoid confusion, Firestore generates its own
+    const { id, ...cleanData } = data; 
+    await addDoc(collection(db, collectionName), cleanData);
     return true;
   } catch (error: any) {
     console.error("Error adding document: ", error);
@@ -64,11 +66,15 @@ export const addToCollection = async (collectionName: string, data: any) => {
 
 export const deleteFromCollection = async (collectionName: string, id: string) => {
   try {
+    if (!id) {
+        alert("Error: Invalid ID. Cannot delete.");
+        return false;
+    }
     await deleteDoc(doc(db, collectionName, id));
     return true;
   } catch (error: any) {
     console.error("Error deleting document: ", error);
-    alert(`Delete Failed: ${error.message}\n\nGo to Firebase Console > Firestore Database > Rules.\nEnsure it says: allow write: if request.auth != null;`);
+    alert(`Delete Failed: ${error.message}\n\n1. Check Internet.\n2. Go to Firebase Console > Firestore Database > Rules.\n3. Ensure it says: allow write: if request.auth != null;`);
     return false;
   }
 };
