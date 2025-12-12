@@ -48,6 +48,39 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       reader.readAsDataURL(file);
     });
   };
+// 🔥 FAST Video Compression (Browser-Safe)
+const compressVideo = async (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      video.src = e.target?.result as string;
+    };
+
+    video.onloadeddata = () => {
+      const w = video.videoWidth * 0.5;
+      const h = video.videoHeight * 0.5;
+
+      canvas.width = w;
+      canvas.height = h;
+
+      ctx.drawImage(video, 0, 0, w, h);
+
+      canvas.toBlob(
+        (blob) => {
+          resolve(new File([blob!], file.name, { type: "video/mp4" }));
+        },
+        "video/mp4",
+        0.7
+      );
+    };
+
+    reader.readAsDataURL(file);
+  });
+};
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
