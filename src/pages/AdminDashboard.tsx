@@ -179,13 +179,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setNewLink({ title: '', url: '', description: '' }); 
   };
 
-  const deleteTax = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('taxRecords', id, () => setTaxRecords(prev => prev.filter(item => item.id !== id))); };
-  const deleteMember = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('members', id, () => setMembers(prev => prev.filter(item => item.id !== id))); };
-  const deleteBlogPost = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('blogs', id, () => setBlogs(prev => prev.filter(item => item.id !== id))); };
-  const deleteScheme = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('schemes', id, () => setSchemes(prev => prev.filter(item => item.id !== id))); };
-  const deleteMeeting = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('meetings', id, () => setMeetings(prev => prev.filter(item => item.id !== id))); };
-  const deleteLink = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('links', id, () => setLinks(prev => prev.filter(item => item.id !== id))); };
-  const deleteComplaint = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('complaints', id, () => setComplaints && setComplaints(prev => prev.filter(item => item.id !== id))); };
+  const deleteTax = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("taxRecords", docId, () =>
+    setTaxRecords(prev => prev.filter(item => item.docId !== docId))
+  );
+};
+
+const deleteMember = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("members", docId, () =>
+    setMembers(prev => prev.filter(item => item.docId !== docId))
+  );
+};
+
+const deleteBlogPost = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("blogs", docId, () =>
+    setBlogs(prev => prev.filter(item => item.docId !== docId))
+  );
+};
+
+const deleteScheme = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("schemes", docId, () =>
+    setSchemes(prev => prev.filter(item => item.docId !== docId))
+  );
+};
+
+const deleteMeeting = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("meetings", docId, () =>
+    setMeetings(prev => prev.filter(item => item.docId !== docId))
+  );
+};
+
+const deleteLink = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("links", docId, () =>
+    setLinks(prev => prev.filter(item => item.docId !== docId))
+  );
+};
+
+const deleteComplaint = (e: React.MouseEvent, docId: string) => {
+  e.preventDefault();
+  executeDelete("complaints", docId, () =>
+    setComplaints(prev => prev.filter(item => item.docId !== docId))
+  );
+};
 
   const toggleComplaintStatus = (id: string, currentStatus: string) => {
       const newStatus = currentStatus === 'Open' ? 'Resolved' : 'Open';
