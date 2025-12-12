@@ -26,7 +26,7 @@ interface AdminDashboardProps {
   isCloudConnected: boolean;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+export const AdminDashboard: React.FC<AdminDashboardProps> = (
   members, setMembers, settings, setSettings, taxRecords, setTaxRecords, 
   complaints, setComplaints, 
   blogs, setBlogs, schemes, setSchemes, meetings, setMeetings, links, setLinks,
