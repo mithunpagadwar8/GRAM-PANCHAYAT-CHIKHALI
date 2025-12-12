@@ -12,8 +12,8 @@ export const subscribeToCollection = (
     const q = query(collection(db, collectionName));
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
-        ...doc.data(), // 1. Load data first
-        id: doc.id     // 2. OVERWRITE with Firestore's Real Document ID (Crucial for Delete)
+        ...doc.data(), // 1. First spread the data
+        id: doc.id     // 2. THEN overwrite 'id' with the real Firestore Document ID
       }));
       callback(data);
     }, (error) => {
@@ -99,7 +99,6 @@ export const saveSettings = async (settings: any) => {
         return true;
     } catch (error: any) {
         console.error("Settings Sync Failed", error);
-        // alert(`Settings Save Failed: ${error.message}`);
         return false;
     }
 };
