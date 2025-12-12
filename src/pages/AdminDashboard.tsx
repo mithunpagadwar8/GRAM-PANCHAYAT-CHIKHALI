@@ -97,33 +97,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // --- CLOUD WRAPPER ---
   const executeAction = async (collection: string, data: any, localUpdate: () => void) => {
-      if (isConfigured()) {
-          const success = await addToCollection(collection, data);
-          if (!success) return; 
+      if (isConfigured() && isCloudConnected) {
+          await addToCollection(collection, data);
       } else {
           localUpdate();
       }
   };
 
+  // FIXED: Delete Logic now handles offline/error states gracefully
   const executeDelete = async (collection: string, id: string, localUpdate: () => void) => {
       if(!window.confirm("Are you sure you want to delete this item?")) return;
 
-      if (isConfigured()) {
-          // Await the deletion properly
+      if (isConfigured() && isCloudConnected) {
           const success = await deleteFromCollection(collection, id);
           if (success) {
-             // Force local update immediately so UI feels fast
              localUpdate(); 
           }
       } else {
+          // Fallback for Demo Mode or Broken Connection so UI still works
           localUpdate();
       }
   };
 
   const executeUpdate = async (collection: string, id: string, data: any, localUpdate: () => void) => {
-      if (isConfigured()) {
-          const success = await updateInCollection(collection, id, data);
-          if (!success) return;
+      if (isConfigured() && isCloudConnected) {
+          await updateInCollection(collection, id, data);
       } else {
           localUpdate();
       }
