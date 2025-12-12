@@ -10,7 +10,7 @@ interface AdminDashboardProps {
   members: Member[];
   setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
   settings: AppSettings;
-  setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
+  setSettings: (newSettings: AppSettings) => void;
   taxRecords: TaxRecord[];
   setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
   complaints: Complaint[];
