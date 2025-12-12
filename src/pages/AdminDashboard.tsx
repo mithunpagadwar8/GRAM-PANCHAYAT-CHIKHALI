@@ -6,7 +6,7 @@ import { addToCollection, deleteFromCollection, updateInCollection } from '../se
 import { isConfigured, auth } from '../firebaseConfig';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
-interface AdminDashboardProps = {
+interface < AdminDashboardProps = {
   members: Member[];
   setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
   settings: AppSettings;
