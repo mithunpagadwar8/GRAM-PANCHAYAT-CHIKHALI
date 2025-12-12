@@ -261,8 +261,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="mt-6 text-center text-xs text-gray-400 border-t pt-4">
               <p className="mb-2"><strong>Trouble Logging in?</strong></p>
               <p>If you get "Password Incorrect", you must delete the user in <br/>
-              Firebase Console {" > "} Authentication</a>{" "}to reset.<p/>
-</div>
+              <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="text-blue-500 underline">Firebase Console > Authentication</a> to reset.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // AUTHENTICATED DASHBOARD
   return (
