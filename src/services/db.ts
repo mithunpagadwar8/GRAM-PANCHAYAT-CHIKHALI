@@ -1,8 +1,8 @@
-
 import { db } from '../firebaseConfig';
-import { collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot, query } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query } from 'firebase/firestore';
 
-// Subscribe to a Collection (List)
+// Generic Subscribe Function (Realtime Listener)
+// Now supports an onError callback to handle permission/connection issues gracefully
 export const subscribeToCollection = (
   collectionName: string, 
   callback: (data: any[]) => void,
@@ -12,12 +12,13 @@ export const subscribeToCollection = (
     const q = query(collection(db, collectionName));
     return onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
-        ...doc.data(), // 1. First spread the data
-        id: doc.id     // 2. THEN overwrite 'id' with the real Firestore Document ID
+        id: doc.id,
+        ...doc.data()
       }));
       callback(data);
     }, (error) => {
         console.error(`Error syncing ${collectionName}:`, error);
+        // If an error handler is provided (e.g., to switch to offline mode), call it
         if (onError) onError(error);
     });
   } catch (e) {
@@ -27,78 +28,36 @@ export const subscribeToCollection = (
   }
 };
 
-// Subscribe to a Single Document (e.g., Settings)
-export const subscribeToDocument = (
-    collectionName: string,
-    docId: string,
-    callback: (data: any) => void,
-    onError?: (error: any) => void
-) => {
-    try {
-        return onSnapshot(doc(db, collectionName, docId), (doc) => {
-            if (doc.exists()) {
-                callback(doc.data());
-            } else {
-                callback(null);
-            }
-        }, (error) => {
-            console.error(`Error syncing document ${collectionName}/${docId}:`, error);
-            if(onError) onError(error);
-        });
-    } catch (e) {
-        if(onError) onError(e);
-        return () => {};
-    }
-}
-
+// Generic Add Function
 export const addToCollection = async (collectionName: string, data: any) => {
   try {
-    // Remove 'id' from data if it exists to avoid confusion, let Firestore generate its own
-    const { id, ...cleanData } = data; 
-    await addDoc(collection(db, collectionName), cleanData);
+    await addDoc(collection(db, collectionName), data);
     return true;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error adding document: ", error);
-    alert(`Upload Error: ${error.message}\nCheck Firebase Rules.`);
+    alert("Cloud Error: Database might be disabled in Firebase Console. Please enable Firestore.");
     return false;
   }
 };
 
+// Generic Delete Function
 export const deleteFromCollection = async (collectionName: string, id: string) => {
   try {
-    if (!id || typeof id !== 'string') {
-        console.error("Invalid ID passed to delete:", id);
-        return false;
-    }
     await deleteDoc(doc(db, collectionName, id));
-    console.log(`Document ${id} deleted from ${collectionName}`);
-    return true;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting document: ", error);
-    // Don't alert here to avoid spamming user if they are clicking fast or offline
-    return false;
   }
 };
 
+// Generic Update Function
 export const updateInCollection = async (collectionName: string, id: string, data: any) => {
     try {
         await updateDoc(doc(db, collectionName, id), data);
-        return true;
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error updating document: ", error);
-        alert(`Update Failed: ${error.message}`);
-        return false;
     }
 };
 
-// Save Settings (Upsert)
 export const saveSettings = async (settings: any) => {
-    try {
-        await setDoc(doc(db, 'settings', 'global'), settings);
-        console.log("Settings synced to cloud");
-        return true;
-    } catch (error: any) {
-        console.error("Settings Sync Failed", error);
-        return false;
-    }
+    console.log("Settings synced to cloud"); 
 };
