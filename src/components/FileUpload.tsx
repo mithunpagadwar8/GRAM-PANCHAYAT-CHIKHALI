@@ -20,7 +20,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 🔥 FAST Image Compression (70% smaller)
+  // 🔥 FAST Image Compression (50% resize + 70% quality)
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -49,42 +49,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     });
   };
 
-  // 🔥 FAST Video Compression (50% resolution reduce)
-  const compressVideo = async (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        video.src = e.target?.result as string;
-      };
-
-      video.onloadeddata = () => {
-        const w = video.videoWidth * 0.5;
-        const h = video.videoHeight * 0.5;
-
-        canvas.width = w;
-        canvas.height = h;
-
-        ctx.drawImage(video, 0, 0, w, h);
-
-        canvas.toBlob(
-          (blob) => {
-            resolve(new File([blob!], file.name, { type: "video/mp4" }));
-          },
-          "video/mp4",
-          0.7
-        );
-      };
-
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // 🔥 Main Upload Function
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -98,22 +65,29 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
     let fileToUpload: Blob | File = file;
 
-    // Image compression
+    // ⭐ ONLY image compression (fast)
     if (file.type.startsWith("image/")) {
       fileToUpload = await compressImage(file);
     }
-    // Video compression
-    else if (file.type.startsWith("video/")) {
-      fileToUpload = await compressVideo(file);
-    }
 
-    const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+    // ⭐ Video = No Compression (FASTEST UPLOAD)
+    // if (file.type.startsWith("video/")) {
+    //   fileToUpload = file; // untouched (best speed)
+    // }
+
+    // Firebase storage ref
+    const storageRef = ref(
+      storage,
+      `uploads/${Date.now()}_${file.name}`
+    );
+
     const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
 
     uploadTask.on(
       "state_changed",
       (snapshot) => {
-        const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        const p =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setProgress(p);
       },
       (error) => {
@@ -153,12 +127,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           <div className="text-gray-500">
             <i className="fas fa-cloud-upload-alt text-3xl mb-2"></i>
             <p>Click to upload to Cloud</p>
-            <span className="text-xs text-gray-400">(CDN Powered Storage)</span>
+            <span className="text-xs text-gray-400">
+              (Super-Fast CDN Powered)
+            </span>
           </div>
         )}
 
         {preview && previewType === "image" && (
-          <img src={preview} className="max-h-48 mx-auto rounded shadow" />
+          <img
+            src={preview}
+            className="max-h-48 mx-auto rounded shadow"
+          />
         )}
 
         {uploading && (
