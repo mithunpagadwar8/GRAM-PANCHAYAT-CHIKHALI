@@ -1,104 +1,110 @@
+import { db, storage } from '../firebaseConfig';
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc,
+  setDoc
+} from 'firebase/firestore';
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject
+} from 'firebase/storage';
 
-import { db } from '../firebaseConfig';
-import { collection, addDoc, deleteDoc, doc, updateDoc, setDoc, onSnapshot, query } from 'firebase/firestore';
-
-// Subscribe to a Collection (List)
 export const subscribeToCollection = (
-  collectionName: string, 
+  collectionName: string,
   callback: (data: any[]) => void,
   onError?: (error: any) => void
 ) => {
   try {
-    const q = query(collection(db, collectionName));
-    return onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        ...doc.data(), // 1. First spread the data
-        id: doc.id     // 2. THEN overwrite 'id' with the real Firestore Document ID
-      }));
-      callback(data);
-    }, (error) => {
-        console.error(`Error syncing ${collectionName}:`, error);
+    const colRef = collection(db, collectionName);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        callback(data);
+      },
+      (error) => {
+        console.error(`Error subscribing to ${collectionName}:`, error);
         if (onError) onError(error);
-    });
-  } catch (e) {
-    console.error("Firebase not initialized or query failed", e);
-    if (onError) onError(e);
+      }
+    );
+  } catch (error) {
+    console.error(`Error setting up subscription for ${collectionName}:`, error);
+    if (onError) onError(error);
     return () => {};
   }
 };
 
-// Subscribe to a Single Document (e.g., Settings)
-export const subscribeToDocument = (
-    collectionName: string,
-    docId: string,
-    callback: (data: any) => void,
-    onError?: (error: any) => void
-) => {
-    try {
-        return onSnapshot(doc(db, collectionName, docId), (doc) => {
-            if (doc.exists()) {
-                callback(doc.data());
-            } else {
-                callback(null);
-            }
-        }, (error) => {
-            console.error(`Error syncing document ${collectionName}/${docId}:`, error);
-            if(onError) onError(error);
-        });
-    } catch (e) {
-        if(onError) onError(e);
-        return () => {};
-    }
-}
-
 export const addToCollection = async (collectionName: string, data: any) => {
   try {
-    // Remove 'id' from data if it exists to avoid confusion, let Firestore generate its own
-    const { id, ...cleanData } = data; 
-    await addDoc(collection(db, collectionName), cleanData);
-    return true;
-  } catch (error: any) {
-    console.error("Error adding document: ", error);
-    alert(`Upload Error: ${error.message}\nCheck Firebase Rules.`);
-    return false;
+    const colRef = collection(db, collectionName);
+    const { id, ...dataWithoutId } = data;
+    if (id) {
+      await setDoc(doc(db, collectionName, id), dataWithoutId);
+      return id;
+    } else {
+      const docRef = await addDoc(colRef, dataWithoutId);
+      return docRef.id;
+    }
+  } catch (error) {
+    console.error(`Error adding to ${collectionName}:`, error);
+    throw error;
   }
 };
 
-export const deleteFromCollection = async (collectionName: string, id: string) => {
+export const deleteFromCollection = async (collectionName: string, docId: string) => {
   try {
-    if (!id || typeof id !== 'string') {
-        console.error("Invalid ID passed to delete:", id);
-        return false;
-    }
-    await deleteDoc(doc(db, collectionName, id));
-    console.log(`Document ${id} deleted from ${collectionName}`);
+    const docRef = doc(db, collectionName, docId);
+    await deleteDoc(docRef);
+    console.log(`Successfully deleted ${docId} from ${collectionName}`);
     return true;
-  } catch (error: any) {
-    console.error("Error deleting document: ", error);
-    // Don't alert here to avoid spamming user if they are clicking fast or offline
-    return false;
+  } catch (error) {
+    console.error(`Error deleting from ${collectionName}:`, error);
+    throw error;
   }
 };
 
-export const updateInCollection = async (collectionName: string, id: string, data: any) => {
-    try {
-        await updateDoc(doc(db, collectionName, id), data);
-        return true;
-    } catch (error: any) {
-        console.error("Error updating document: ", error);
-        alert(`Update Failed: ${error.message}`);
-        return false;
-    }
+export const updateInCollection = async (collectionName: string, docId: string, data: any) => {
+  try {
+    const docRef = doc(db, collectionName, docId);
+    const { id, ...dataWithoutId } = data;
+    await updateDoc(docRef, dataWithoutId);
+    console.log(`Successfully updated ${docId} in ${collectionName}`);
+    return true;
+  } catch (error) {
+    console.error(`Error updating in ${collectionName}:`, error);
+    throw error;
+  }
 };
 
-// Save Settings (Upsert)
-export const saveSettings = async (settings: any) => {
-    try {
-        await setDoc(doc(db, 'settings', 'global'), settings);
-        console.log("Settings synced to cloud");
-        return true;
-    } catch (error: any) {
-        console.error("Settings Sync Failed", error);
-        return false;
-    }
+export const uploadFile = async (file: File, path: string): Promise<string> => {
+  try {
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
+
+export const deleteFile = async (fileUrl: string): Promise<boolean> => {
+  try {
+    if (!fileUrl || !fileUrl.includes('firebase')) return true;
+    const storageRef = ref(storage, fileUrl);
+    await deleteObject(storageRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return false;
+  }
 };
