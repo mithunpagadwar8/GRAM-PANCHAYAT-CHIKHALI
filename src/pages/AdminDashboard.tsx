@@ -104,18 +104,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
   };
 
-  // FIXED: Delete Logic now handles offline/error states gracefully
+  // FIXED: Optimistic Delete Logic
+  // This removes the item from the screen IMMEDIATELY, then tries to delete from Cloud.
   const executeDelete = async (collection: string, id: string, localUpdate: () => void) => {
       if(!window.confirm("Are you sure you want to delete this item?")) return;
 
+      // 1. Optimistic Update: Update UI immediately so user sees it disappear
+      localUpdate();
+
+      // 2. Cloud Delete
       if (isConfigured() && isCloudConnected) {
-          const success = await deleteFromCollection(collection, id);
-          if (success) {
-             localUpdate(); 
-          }
-      } else {
-          // Fallback for Demo Mode or Broken Connection so UI still works
-          localUpdate();
+          // We don't await the result to block the UI, but we trigger it
+          deleteFromCollection(collection, id).catch(err => {
+              console.error("Background delete failed", err);
+              // Note: If delete fails (e.g. permission), the real-time listener (onSnapshot) in App.tsx 
+              // might put the data back. This is expected behavior to ensure data consistency.
+              // But for now, the user gets immediate feedback.
+          });
       }
   };
 
