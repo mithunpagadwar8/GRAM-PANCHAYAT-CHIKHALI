@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
-import { AdminDashboard } from './pages/AdminDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import { TaxPayment } from './pages/TaxPayment';
 import { Complaint } from './pages/Complaint';
 import { Blog } from './pages/Blog';
