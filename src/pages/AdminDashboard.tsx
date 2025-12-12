@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppSettings, BlogPost, Complaint, ImportantLink, MeetingRecord, Member, Scheme, TaxRecord } from '../types';
 import { FileUpload } from '../components/FileUpload';
@@ -96,35 +97,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // --- CLOUD WRAPPER ---
   const executeAction = async (collection: string, data: any, localUpdate: () => void) => {
-      if (isConfigured()) {
+      if (isConfigured() && isCloudConnected) {
           await addToCollection(collection, data);
       } else {
           localUpdate();
       }
   };
 
-  // FIXED: Optimistic Delete Logic
-  // This removes the item from the screen IMMEDIATELY, then tries to delete from Cloud.
-  const executeDelete = async (collection: string, id: string, localUpdate: () => void) => {
+  // FIXED: Delete Logic with robust Optimistic Update
+  const executeDelete = (collection: string, id: string, localUpdate: () => void) => {
       if(!window.confirm("Are you sure you want to delete this item?")) return;
 
-      // 1. Optimistic Update: Update UI immediately so user sees it disappear
+      console.log(`Deleting ${collection} item: ${id}`);
+      
+      // 1. Optimistic Update (Immediate Removal)
       localUpdate();
 
-      // 2. Cloud Delete
+      // 2. Cloud Delete (Background)
       if (isConfigured()) {
-          // We don't await the result to block the UI, but we trigger it
-          deleteFromCollection(collection, id).catch(err => {
-              console.error("Background delete failed", err);
-              // Note: If delete fails (e.g. permission), the real-time listener (onSnapshot) in App.tsx 
-              // might put the data back. This is expected behavior to ensure data consistency.
-              // But for now, the user gets immediate feedback.
+          deleteFromCollection(collection, id).then(success => {
+              if(!success) console.warn("Cloud delete failed or permission denied.");
           });
       }
   };
 
   const executeUpdate = async (collection: string, id: string, data: any, localUpdate: () => void) => {
-      if (isConfigured()) {
+      if (isConfigured() && isCloudConnected) {
           await updateInCollection(collection, id, data);
       } else {
           localUpdate();
