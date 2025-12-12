@@ -66,16 +66,16 @@ export const addToCollection = async (collectionName: string, data: any) => {
 
 export const deleteFromCollection = async (collectionName: string, id: string) => {
   try {
-    if (!id) {
-        alert("Error: Invalid ID. Cannot delete.");
+    if (!id || typeof id !== 'string') {
+        console.error("Invalid ID passed to delete:", id);
         return false;
     }
     await deleteDoc(doc(db, collectionName, id));
-    console.log("Item deleted successfully");
+    console.log(`Document ${id} deleted from ${collectionName}`);
     return true;
   } catch (error: any) {
     console.error("Error deleting document: ", error);
-    alert(`Delete Failed: ${error.message}\n\n1. Check Internet.\n2. Go to Firebase Console > Firestore Database > Rules.\n3. Ensure it says: allow write: if request.auth != null;`);
+    // Don't alert here to avoid spamming user if they are clicking fast or offline
     return false;
   }
 };
