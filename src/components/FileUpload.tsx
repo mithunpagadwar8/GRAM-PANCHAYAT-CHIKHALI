@@ -11,7 +11,7 @@ interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   label,
-  accept="image/*,video/*"
+  accept = "image/*,video/*",
   onFileSelect,
   previewType = "any",
 }) => {
@@ -20,7 +20,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 🔥 FAST Image Compression Function
+  // 🔥 FAST Image Compression
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -32,21 +32,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       };
 
       img.onload = () => {
-        const width = img.width;
-        const height = img.height;
-
-        // Resize to 50% (Super Fast)
-        canvas.width = width * 0.5;
-        canvas.height = height * 0.5;
+        canvas.width = img.width * 0.5;
+        canvas.height = img.height * 0.5;
 
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // 0.7 compression (best quality + 70% size reduction)
         canvas.toBlob(
-          (blob) => {
-            resolve(blob!);
-          },
+          (blob) => resolve(blob!),
           "image/jpeg",
           0.7
         );
@@ -56,16 +49,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     });
   };
 
-  const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!isConfigured()) {
-      alert(
-        "Cloud upload is OFF. Configure firebaseConfig.ts first."
-      );
+      alert("Cloud upload is OFF. Configure firebaseConfig.ts first.");
       return;
     }
 
@@ -74,35 +63,21 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
     let fileToUpload: Blob | File = file;
 
-    // 🌟 Compress images for ultra fast upload
     if (file.type.startsWith("image/")) {
       fileToUpload = await compressImage(file);
     }
 
-    // Create storage reference
     const storageRef = ref(
       storage,
       `uploads/${Date.now()}_${file.name}`
     );
 
-    // ⚡ Faster chunk size
-    const metadata = {
-      customMetadata: {
-        optimized: "true",
-      },
-    };
-
-    const uploadTask = uploadBytesResumable(
-      storageRef,
-      fileToUpload,
-      metadata
-    );
+    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
 
     uploadTask.on(
       "state_changed",
       (snapshot) => {
-        const p =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setProgress(p);
       },
       (error) => {
@@ -142,17 +117,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           <div className="text-gray-500">
             <i className="fas fa-cloud-upload-alt text-3xl mb-2"></i>
             <p>Click to upload to Cloud</p>
-            <span className="text-xs text-gray-400">
-              (Super-Fast CDN Powered)
-            </span>
+            <span className="text-xs text-gray-400">(CDN Powered Storage)</span>
           </div>
         )}
 
         {preview && previewType === "image" && (
-          <img
-            src={preview}
-            className="max-h-48 mx-auto rounded shadow"
-          />
+          <img src={preview} className="max-h-48 mx-auto rounded shadow" />
         )}
 
         {uploading && (
