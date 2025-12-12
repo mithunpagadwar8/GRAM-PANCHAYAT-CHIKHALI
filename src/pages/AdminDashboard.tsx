@@ -7,6 +7,11 @@ import { isConfigured, auth } from '../firebaseConfig';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from "firebase/auth";
 
 interface AdminDashboardProps {
+  interface AdminDashboardProps {
+  settings: AppSettings;
+  setSettings: (newSettings: AppSettings) => void;
+  ...
+}
   members: Member[];
   setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
   settings: AppSettings;
