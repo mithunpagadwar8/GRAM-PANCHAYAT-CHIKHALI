@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
@@ -13,21 +12,19 @@ import { Contact } from './pages/Contact';
 
 import { INITIAL_BLOGS, INITIAL_LINKS, INITIAL_MEETINGS, INITIAL_MEMBERS, INITIAL_SCHEMES, INITIAL_SETTINGS, INITIAL_TAX_RECORDS } from './constants';
 import { AppSettings, BlogPost, Complaint as ComplaintType, ImportantLink, MeetingRecord, Member, Scheme, TaxRecord } from './types';
-import { subscribeToCollection, addToCollection, subscribeToDocument, saveSettings } from './services/db';
+import { subscribeToCollection, addToCollection } from './services/db';
 import { isConfigured } from './firebaseConfig';
 
 function App() {
   // State 
   const [settings, setSettings] = useState<AppSettings>(INITIAL_SETTINGS);
-  
-  // Start with empty arrays. Only load INITIAL_DATA if NOT configured.
-  const [members, setMembers] = useState<Member[]>([]);
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [taxRecords, setTaxRecords] = useState<TaxRecord[]>([]); 
+  const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
+  const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
+  const [taxRecords, setTaxRecords] = useState<TaxRecord[]>(INITIAL_TAX_RECORDS); 
   const [complaints, setComplaints] = useState<ComplaintType[]>([]);
-  const [schemes, setSchemes] = useState<Scheme[]>([]);
-  const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
-  const [links, setLinks] = useState<ImportantLink[]>([]);
+  const [schemes, setSchemes] = useState<Scheme[]>(INITIAL_SCHEMES);
+  const [meetings, setMeetings] = useState<MeetingRecord[]>(INITIAL_MEETINGS);
+  const [links, setLinks] = useState<ImportantLink[]>(INITIAL_LINKS);
   
   const [isConnected, setIsConnected] = useState(false);
   const [dbError, setDbError] = useState(false);
@@ -35,45 +32,29 @@ function App() {
 
   // Realtime Cloud Sync Logic
   const connectToDatabase = useCallback(() => {
-    // 1. OFFLINE / DEMO MODE CHECK
     if (!isConfigured()) {
       console.warn("Firebase not configured. Using Demo Data.");
-      setMembers(INITIAL_MEMBERS);
-      setBlogs(INITIAL_BLOGS);
-      setTaxRecords(INITIAL_TAX_RECORDS);
-      setSchemes(INITIAL_SCHEMES);
-      setMeetings(INITIAL_MEETINGS);
-      setLinks(INITIAL_LINKS);
       return () => {};
     }
 
-    // 2. ONLINE MODE
     setDbError(false); // Reset error state on try
     setIsConnected(true); // Optimistically set connected
 
     const handleSyncError = (err: any) => {
-        console.warn("Database Sync Failed", err);
+        // If we get a permission/not-found error, it means DB isn't set up yet
+        console.warn("Database Sync Failed - Switching to Offline Mode", err);
         setIsConnected(false);
         setDbError(true);
-        // Do NOT load INITIAL_DATA here. If sync fails, show error, don't show fake data.
     };
 
-    // CRITICAL FIX: Removed fallback to INITIAL_DATA. 
-    // If data is empty [], setMembers([]) should happen, NOT setMembers(INITIAL_MEMBERS).
-    
-    const unsubMembers = subscribeToCollection('members', (data) => setMembers(data as Member[]), handleSyncError);
-    const unsubBlogs = subscribeToCollection('blogs', (data) => setBlogs(data as BlogPost[]), handleSyncError);
-    const unsubTax = subscribeToCollection('taxRecords', (data) => setTaxRecords(data as TaxRecord[]), handleSyncError);
+    const unsubMembers = subscribeToCollection('members', (data) => setMembers(data.length ? data as Member[] : INITIAL_MEMBERS), handleSyncError);
+    const unsubBlogs = subscribeToCollection('blogs', (data) => setBlogs(data.length ? data as BlogPost[] : INITIAL_BLOGS), handleSyncError);
+    const unsubTax = subscribeToCollection('taxRecords', (data) => setTaxRecords(data.length ? data as TaxRecord[] : INITIAL_TAX_RECORDS), handleSyncError);
     const unsubComplaints = subscribeToCollection('complaints', (data) => setComplaints(data as ComplaintType[]), handleSyncError);
-    const unsubSchemes = subscribeToCollection('schemes', (data) => setSchemes(data as Scheme[]), handleSyncError);
-    const unsubMeetings = subscribeToCollection('meetings', (data) => setMeetings(data as MeetingRecord[]), handleSyncError);
-    const unsubLinks = subscribeToCollection('links', (data) => setLinks(data as ImportantLink[]), handleSyncError);
+    const unsubSchemes = subscribeToCollection('schemes', (data) => setSchemes(data.length ? data as Scheme[] : INITIAL_SCHEMES), handleSyncError);
+    const unsubMeetings = subscribeToCollection('meetings', (data) => setMeetings(data.length ? data as MeetingRecord[] : INITIAL_MEETINGS), handleSyncError);
+    const unsubLinks = subscribeToCollection('links', (data) => setLinks(data.length ? data as ImportantLink[] : INITIAL_LINKS), handleSyncError);
     
-    // Subscribe to Settings
-    const unsubSettings = subscribeToDocument('settings', 'global', (data) => {
-        if(data) setSettings({...INITIAL_SETTINGS, ...data}); 
-    }, handleSyncError);
-
     // Return cleanup function
     return () => {
       if (unsubMembers) unsubMembers();
@@ -83,7 +64,6 @@ function App() {
       if (unsubSchemes) unsubSchemes();
       if (unsubMeetings) unsubMeetings();
       if (unsubLinks) unsubLinks();
-      if (unsubSettings) unsubSettings();
     };
   }, [retryCount]); // Re-run when retryCount changes
 
@@ -105,16 +85,8 @@ function App() {
         addToCollection('complaints', newComplaint);
     } else {
         setComplaints(prev => [newComplaint, ...prev]); // Fallback
-        alert("Offline Mode: Complaint saved locally.");
+        alert("Offline Mode: Complaint saved locally. Enable Firestore in Google Cloud Console to sync permanently.");
     }
-  };
-
-  // Wrapper for settings update
-  const handleUpdateSettings = (newSettings: AppSettings) => {
-      setSettings(newSettings); 
-      if(isConfigured() && isConnected) {
-          saveSettings(newSettings);
-      }
   };
 
   return (
@@ -157,7 +129,7 @@ function App() {
               element={
                 <AdminDashboard 
                   members={members} setMembers={setMembers}
-                  settings={settings} setSettings={handleUpdateSettings}
+                  settings={settings} setSettings={setSettings}
                   taxRecords={taxRecords} setTaxRecords={setTaxRecords}
                   complaints={complaints} setComplaints={setComplaints}
                   blogs={blogs} setBlogs={setBlogs}
