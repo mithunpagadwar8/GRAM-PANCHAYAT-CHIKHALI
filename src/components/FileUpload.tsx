@@ -11,7 +11,7 @@ interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   label,
-  accept = "*",
+  accept="image/*,video/*"
   onFileSelect,
   previewType = "any",
 }) => {
