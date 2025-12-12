@@ -106,10 +106,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const executeDelete = async (collection: string, id: string, localUpdate: () => void) => {
+      if(!window.confirm("Are you sure you want to delete this item?")) return;
+
       if (isConfigured()) {
           // Await the deletion properly
           const success = await deleteFromCollection(collection, id);
-          if (!success) return;
+          if (success) {
+             // Force local update immediately so UI feels fast
+             localUpdate(); 
+          }
       } else {
           localUpdate();
       }
@@ -174,19 +179,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setNewLink({ title: '', url: '', description: '' }); 
   };
 
-  const deleteItem = async (collection: string, id: string, setter: any) => {
-      if (window.confirm("Are you sure you want to delete this item?")) {
-          await executeDelete(collection, id, () => setter((prev: any[]) => prev.filter(i => i.id !== id)));
-      }
-  };
-
-  const deleteTax = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('taxRecords', id, setTaxRecords); };
-  const deleteMember = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('members', id, setMembers); };
-  const deleteBlogPost = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('blogs', id, setBlogs); };
-  const deleteScheme = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('schemes', id, setSchemes); };
-  const deleteMeeting = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('meetings', id, setMeetings); };
-  const deleteLink = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('links', id, setLinks); };
-  const deleteComplaint = (e: React.MouseEvent, id: string) => { e.preventDefault(); deleteItem('complaints', id, setComplaints); };
+  const deleteTax = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('taxRecords', id, () => setTaxRecords(prev => prev.filter(item => item.id !== id))); };
+  const deleteMember = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('members', id, () => setMembers(prev => prev.filter(item => item.id !== id))); };
+  const deleteBlogPost = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('blogs', id, () => setBlogs(prev => prev.filter(item => item.id !== id))); };
+  const deleteScheme = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('schemes', id, () => setSchemes(prev => prev.filter(item => item.id !== id))); };
+  const deleteMeeting = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('meetings', id, () => setMeetings(prev => prev.filter(item => item.id !== id))); };
+  const deleteLink = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('links', id, () => setLinks(prev => prev.filter(item => item.id !== id))); };
+  const deleteComplaint = (e: React.MouseEvent, id: string) => { e.preventDefault(); executeDelete('complaints', id, () => setComplaints && setComplaints(prev => prev.filter(item => item.id !== id))); };
 
   const toggleComplaintStatus = (id: string, currentStatus: string) => {
       const newStatus = currentStatus === 'Open' ? 'Resolved' : 'Open';
@@ -261,14 +260,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <input className="border p-2 rounded" placeholder="Position (पद - e.g. सरपंच)" value={newMember.position} onChange={e => setNewMember({...newMember, position: e.target.value})} />
                                 <input className="border p-2 rounded" placeholder="Mobile" value={newMember.mobile} onChange={e => setNewMember({...newMember, mobile: e.target.value})} />
                                 <select className="border p-2 rounded bg-white" value={newMember.type} onChange={e => setNewMember({...newMember, type: e.target.value as any})}>
+                                    <option value="member">GP Member (ग्रामपंचायत सदस्य)</option>
+                                    <option value="pesa">PESA Committee (पेसा कमेटी)</option>
+                                    <option value="panchayat_samiti">Panchayat Samiti (पंचायत समिती)</option>
+                                    <option value="staff">Gram Panchayat Staff (कर्मचारी)</option>
                                     <option value="sarpanch">Sarpanch (सरपंच)</option>
                                     <option value="upsarpanch">Upsarpanch (उपसरपंच)</option>
-                                    <option value="member">GP Member (ग्रामपंचायत सदस्य)</option>
                                     <option value="police_patil">Police Patil (पोलीस पाटील)</option>
                                     <option value="tantamukti">Tantamukti Adhyaksh (तंटामुक्त अध्यक्ष)</option>
-                                    <option value="pesa">PESA Adhyaksh (पेसा अध्यक्ष)</option>
-                                    <option value="staff">Gram Sevak/Staff (कर्मचारी)</option>
-                                    <option value="panchayat_samiti">Panchayat Samiti Member</option>
                                 </select>
                                 <div className="md:col-span-2">
                                      <FileUpload label="Profile Photo" accept="image/*" onFileSelect={(url) => setNewMember({...newMember, photoUrl: url})} />
