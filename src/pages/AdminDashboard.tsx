@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppSettings, BlogPost, Complaint, ImportantLink, MeetingRecord, Member, Scheme, TaxRecord } from '../types';
 import { FileUpload } from '../components/FileUpload';
@@ -97,7 +96,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // --- CLOUD WRAPPER ---
   const executeAction = async (collection: string, data: any, localUpdate: () => void) => {
-      if (isConfigured() && isCloudConnected) {
+      if (isConfigured()) {
           await addToCollection(collection, data);
       } else {
           localUpdate();
@@ -113,7 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       localUpdate();
 
       // 2. Cloud Delete
-      if (isConfigured() && isCloudConnected) {
+      if (isConfigured()) {
           // We don't await the result to block the UI, but we trigger it
           deleteFromCollection(collection, id).catch(err => {
               console.error("Background delete failed", err);
@@ -125,7 +124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const executeUpdate = async (collection: string, id: string, data: any, localUpdate: () => void) => {
-      if (isConfigured() && isCloudConnected) {
+      if (isConfigured()) {
           await updateInCollection(collection, id, data);
       } else {
           localUpdate();
@@ -263,14 +262,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <input className="border p-2 rounded" placeholder="Position (पद - e.g. सरपंच)" value={newMember.position} onChange={e => setNewMember({...newMember, position: e.target.value})} />
                                 <input className="border p-2 rounded" placeholder="Mobile" value={newMember.mobile} onChange={e => setNewMember({...newMember, mobile: e.target.value})} />
                                 <select className="border p-2 rounded bg-white" value={newMember.type} onChange={e => setNewMember({...newMember, type: e.target.value as any})}>
-                                    <option value="member">GP Member (ग्रामपंचायत सदस्य)</option>
-                                    <option value="pesa">PESA Committee (पेसा कमेटी)</option>
-                                    <option value="panchayat_samiti">Panchayat Samiti (पंचायत समिती)</option>
-                                    <option value="staff">Gram Panchayat Staff (कर्मचारी)</option>
                                     <option value="sarpanch">Sarpanch (सरपंच)</option>
                                     <option value="upsarpanch">Upsarpanch (उपसरपंच)</option>
+                                    <option value="member">Gram Panchayat Member (ग्रामपंचायत सदस्य)</option>
                                     <option value="police_patil">Police Patil (पोलीस पाटील)</option>
-                                    <option value="tantamukti">Tantamukti Adhyaksh (तंटामुक्त अध्यक्ष)</option>
+                                    <option value="tantamukti">Tantamukti Adhyaksh (तंटामुक्ती अध्यक्ष)</option>
+                                    <option value="pesa">PESA Committee (पेसा समिती)</option>
+                                    <option value="panchayat_samiti">Panchayat Samiti (पंचायत समिती)</option>
+                                    <option value="staff">Staff (कर्मचारी)</option>
                                 </select>
                                 <div className="md:col-span-2">
                                      <FileUpload label="Profile Photo" accept="image/*" onFileSelect={(url) => setNewMember({...newMember, photoUrl: url})} />
