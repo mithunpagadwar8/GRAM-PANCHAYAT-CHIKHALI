@@ -773,4 +773,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   );
 };
 
-export default AdminDashboard;
+export function AdminDashboard(props: AdminDashboardProps) {
+  // component code
+}
