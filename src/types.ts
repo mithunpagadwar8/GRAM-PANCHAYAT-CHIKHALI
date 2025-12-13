@@ -4,9 +4,10 @@ export interface Member {
   name: string;
   position: string;
   mobile: string;
-  address?: string; // Added Address
+  address?: string; 
   photoUrl: string;
-  type: 'committee' | 'staff' | 'pesa' | 'panchayat_samiti' | 'ps_staff'; // Added ps_staff
+  // Updated types to include specific village roles
+  type: 'sarpanch' | 'upsarpanch' | 'member' | 'police_patil' | 'tantamukti' | 'pesa' | 'staff' | 'panchayat_samiti';
 }
 
 export interface TaxRecord {
@@ -14,7 +15,7 @@ export interface TaxRecord {
   propertyId: string;
   ownerName: string;
   mobile: string;
-  paymentType: 'House Tax' | 'Water Tax' | 'Special Water Tax'; // Added Special Water Tax
+  paymentType: 'House Tax' | 'Water Tax' | 'Special Water Tax';
   amount: number;
   status: 'Paid' | 'Pending';
   date: string;
@@ -35,22 +36,21 @@ export interface Complaint {
   id: string;
   applicantName: string;
   mobile: string;
-  category: string; // Added Category
+  category: string;
   description: string;
-  applicantPhotoUrl?: string; // Added Applicant Photo
+  applicantPhotoUrl?: string;
   docUrl?: string;
   status: 'Open' | 'Resolved';
   date: string;
 }
 
-// New Types for specific sections
 export interface Scheme {
   id: string;
   name: string;
   description: string;
   eligibility: string;
   deadline?: string;
-  docUrl?: string; // PDF or Image
+  docUrl?: string;
 }
 
 export interface MeetingRecord {
@@ -59,7 +59,7 @@ export interface MeetingRecord {
   type: 'Gram Sabha' | 'Masik Sabha' | 'Bal Sabha' | 'Ward Sabha';
   date: string;
   description: string;
-  mediaUrl?: string; // Photos/Videos of the meeting
+  mediaUrl?: string;
   mediaType: 'image' | 'video' | 'youtube';
 }
 
@@ -67,23 +67,23 @@ export interface ImportantLink {
   id: string;
   title: string; 
   url: string;
-  description?: string; // Added Description
+  description?: string;
 }
 
 export interface AppSettings {
   logoUrl: string;
-  flagUrl?: string; // Added for Custom Flag
+  flagUrl?: string;
   sliderImages: string[];
   panchayatName: string;
-  marqueeText?: string; // Added for Scrolling Notice
+  marqueeText?: string;
   address: string;
   district: string;
   taluka: string;
   email: string;
   contactNumber: string;
-  mapEmbedUrl: string; // For location iframe
-  upiIdHouse?: string; // For House Tax (Gharpatti)
-  upiIdWater?: string; // For Water Tax (Panipatti)
-  upiIdSpecialWater?: string; // For Special Water Tax (Khas Panipatti)
-  taxListUrl?: string; // Added for uploading Tax List PDF
+  mapEmbedUrl: string;
+  upiIdHouse?: string;
+  upiIdWater?: string;
+  upiIdSpecialWater?: string;
+  taxListUrl?: string;
 }
