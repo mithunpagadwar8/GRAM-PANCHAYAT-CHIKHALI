@@ -29,10 +29,10 @@ export const Home: React.FC<HomeProps> = ({
   notices,
 }) => {
   return (
-    <div className="space-y-10">
+  <div className="space-y-10">
 
-      {/* ================= HERO SLIDER ================= */}
-      <HeroSlider />
+    {/* ================= HERO SLIDER ================= */}
+    <HeroSlider images={settings.sliderImages} />
 
       {/* ================= NOTICES ================= */}
       <section className="max-w-7xl mx-auto px-4">
