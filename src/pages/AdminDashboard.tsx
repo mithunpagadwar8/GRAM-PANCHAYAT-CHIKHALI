@@ -2,17 +2,6 @@ import React, { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebaseconfig";
 
-import {
-  Member,
-  AppSettings,
-  BlogPost,
-  Scheme,
-  MeetingRecord,
-  ImportantLink,
-  TaxRecord,
-  Complaint
-} from "../types";
-
 // MANAGERS
 import HeroSliderManager from "./admin/HeroSliderManager";
 import BlogManager from "./admin/BlogManager";
@@ -22,8 +11,8 @@ import SettingsManager from "./admin/SettingsManager";
 
 /**
  * =====================================================
- * ADMIN DASHBOARD – MASTER CMS
- * YouTube-style | Full Website Control
+ * ADMIN DASHBOARD – MASTER CMS CONTROLLER
+ * YouTube-style | Future-proof | All Website Tabs
  * =====================================================
  */
 
@@ -35,41 +24,7 @@ type AdminSection =
   | "pages"
   | "settings";
 
-interface AdminDashboardProps {
-  members: Member[];
-  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
-
-  settings: AppSettings;
-  setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
-
-  taxRecords: TaxRecord[];
-  setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
-
-  complaints: Complaint[];
-  setComplaints: React.Dispatch<React.SetStateAction<Complaint[]>>;
-
-  blogs: BlogPost[];
-  setBlogs: React.Dispatch<React.SetStateAction<BlogPost[]>>;
-
-  schemes: Scheme[];
-  setSchemes: React.Dispatch<React.SetStateAction<Scheme[]>>;
-
-  meetings: MeetingRecord[];
-  setMeetings: React.Dispatch<React.SetStateAction<MeetingRecord[]>>;
-
-  links: ImportantLink[];
-  setLinks: React.Dispatch<React.SetStateAction<ImportantLink[]>>;
-
-  isCloudConnected: boolean;
-}
-
-const AdminDashboard: React.FC<AdminDashboardProps> = ({
-  members,
-  settings,
-  blogs,
-  schemes,
-  isCloudConnected,
-}) => {
+export default function AdminDashboard() {
   const [section, setSection] = useState<AdminSection>("overview");
 
   const logout = async () => {
@@ -78,49 +33,63 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-
-      {/* ================= SIDEBAR ================= */}
-      <aside className="w-64 bg-black text-white p-4">
-        <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
-
-        <nav className="space-y-2">
-          <button onClick={() => setSection("overview")} className="w-full text-left p-2 hover:bg-gray-800">Dashboard</button>
-          <button onClick={() => setSection("hero")} className="w-full text-left p-2 hover:bg-gray-800">Hero Slider</button>
-          <button onClick={() => setSection("blog")} className="w-full text-left p-2 hover:bg-gray-800">Blog / Notices</button>
-          <button onClick={() => setSection("schemes")} className="w-full text-left p-2 hover:bg-gray-800">Schemes</button>
-          <button onClick={() => setSection("pages")} className="w-full text-left p-2 hover:bg-gray-800">Pages</button>
-          <button onClick={() => setSection("settings")} className="w-full text-left p-2 hover:bg-gray-800">Settings</button>
+      {/* SIDEBAR */}
+      <aside className="w-64 bg-black text-white p-6">
+        <h2 className="text-xl font-bold mb-6 text-center">Admin Panel</h2>
+        <nav className="space-y-4">
+          <button
+            onClick={() => setSection("overview")}
+            className="flex items-center p-2 w-full text-left text-lg hover:bg-gray-700 rounded-lg transition-all"
+          >
+            <i className="fas fa-tachometer-alt mr-3"></i> Dashboard
+          </button>
+          <button
+            onClick={() => setSection("hero")}
+            className="flex items-center p-2 w-full text-left text-lg hover:bg-gray-700 rounded-lg transition-all"
+          >
+            <i className="fas fa-images mr-3"></i> Hero Slider
+          </button>
+          <button
+            onClick={() => setSection("blog")}
+            className="flex items-center p-2 w-full text-left text-lg hover:bg-gray-700 rounded-lg transition-all"
+          >
+            <i className="fas fa-newspaper mr-3"></i> Blog / Notices
+          </button>
+          <button
+            onClick={() => setSection("schemes")}
+            className="flex items-center p-2 w-full text-left text-lg hover:bg-gray-700 rounded-lg transition-all"
+          >
+            <i className="fas fa-hand-holding-heart mr-3"></i> Schemes
+          </button>
+          <button
+            onClick={() => setSection("pages")}
+            className="flex items-center p-2 w-full text-left text-lg hover:bg-gray-700 rounded-lg transition-all"
+          >
+            <i className="fas fa-file-alt mr-3"></i> Pages
+          </button>
+          <button
+            onClick={() => setSection("settings")}
+            className="flex items-center p-2 w-full text-left text-lg hover:bg-gray-700 rounded-lg transition-all"
+          >
+            <i className="fas fa-cogs mr-3"></i> Settings
+          </button>
         </nav>
-
-        <div className="mt-6 text-xs text-gray-400">
-          Cloud Status: {isCloudConnected ? "🟢 Connected" : "🔴 Offline"}
-        </div>
 
         <button
           onClick={logout}
-          className="mt-6 bg-red-600 w-full p-2 rounded"
+          className="mt-8 bg-red-600 w-full p-2 rounded-lg text-white hover:bg-red-700 transition-all"
         >
-          Logout
+          <i className="fas fa-sign-out-alt mr-2"></i> Logout
         </button>
       </aside>
 
-      {/* ================= MAIN CONTENT ================= */}
+      {/* MAIN */}
       <main className="flex-1 p-6">
-        {section === "overview" && (
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-gray-600">
-              Total Members: {members.length}
-            </p>
-            <p className="text-gray-600">
-              Total Blogs / Notices: {blogs.length}
-            </p>
-            <p className="text-gray-600">
-              Total Schemes: {schemes.length}
-            </p>
-          </div>
-        )}
+        <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
 
+        {section === "overview" && (
+          <div className="text-xl font-semibold text-center">Welcome to Admin Dashboard</div>
+        )}
         {section === "hero" && <HeroSliderManager />}
         {section === "blog" && <BlogManager />}
         {section === "schemes" && <SchemesManager />}
@@ -129,6 +98,4 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </main>
     </div>
   );
-};
-
-export default AdminDashboard;
+}
