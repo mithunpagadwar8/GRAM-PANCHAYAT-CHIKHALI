@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { collection, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../../services/firebase";
+import { db, storage } from '../../services/firebaseconfig';
 
 /**
  * =====================================================
