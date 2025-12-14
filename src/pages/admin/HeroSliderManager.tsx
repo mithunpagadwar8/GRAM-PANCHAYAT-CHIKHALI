@@ -9,17 +9,17 @@ import {
 } from "firebase/firestore";
 import {
   ref,
-  uploadBytes,
+  uploadBytesResumable,
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
-
 import { db, storage, isConfigured } from "../../services/firebaseconfig";
 
 /**
  * =====================================================
- * HERO SLIDER MANAGER
- * Firestore + Firebase Storage
+ * HERO SLIDER MANAGER – YouTube Style
+ * Upload | Preview | Progress | Delete
+ * Firebase Firestore + Storage (CDN)
  * =====================================================
  */
 
@@ -29,69 +29,67 @@ interface SliderItem {
 }
 
 const HeroSliderManager: React.FC = () => {
-  const [slides, setSlides] = useState<SliderItem[]>([]);
+  const [items, setItems] = useState<SliderItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   // ================= LOAD SLIDES =================
   useEffect(() => {
     if (!isConfigured()) return;
 
-    const unsub = onSnapshot(
-      collection(db, "heroSlider"),
-      (snapshot) => {
-        const data: SliderItem[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          imageUrl: d.data().imageUrl,
-        }));
-        setSlides(data);
-      }
-    );
+    const unsub = onSnapshot(collection(db, "heroSlider"), (snap) => {
+      const data: SliderItem[] = snap.docs.map((d) => ({
+        id: d.id,
+        imageUrl: d.data().imageUrl,
+      }));
+      setItems(data);
+    });
 
     return () => unsub();
   }, []);
 
-  // ================= UPLOAD IMAGE =================
-  const handleUpload = async (file: File) => {
+  // ================= UPLOAD =================
+  const uploadImage = (file: File) => {
     if (!file || !isConfigured()) return;
 
-    try {
-      setUploading(true);
+    setUploading(true);
+    const storageRef = ref(storage, `hero-slider/${Date.now()}-${file.name}`);
+    const task = uploadBytesResumable(storageRef, file);
 
-      const storageRef = ref(
-        storage,
-        `hero-slider/${Date.now()}-${file.name}`
-      );
-
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-
-      await addDoc(collection(db, "heroSlider"), {
-        imageUrl: url,
-        createdAt: serverTimestamp(),
-      });
-
-      alert("✅ Image added to Hero Slider");
-    } catch (err) {
-      console.error(err);
-      alert("❌ Upload failed");
-    } finally {
-      setUploading(false);
-    }
+    task.on(
+      "state_changed",
+      (snap) => {
+        const percent = (snap.bytesTransferred / snap.totalBytes) * 100;
+        setProgress(Math.round(percent));
+      },
+      (err) => {
+        console.error(err);
+        alert("Upload failed");
+        setUploading(false);
+      },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        await addDoc(collection(db, "heroSlider"), {
+          imageUrl: url,
+          createdAt: serverTimestamp(),
+        });
+        setUploading(false);
+        setProgress(0);
+      }
+    );
   };
 
-  // ================= DELETE IMAGE =================
-  const handleDelete = async (slide: SliderItem) => {
-    if (!isConfigured()) return;
-
-    if (!confirm("Delete this slide?")) return;
+  // ================= DELETE =================
+  const deleteSlide = async (item: SliderItem) => {
+    if (!window.confirm("Delete this slide?")) return;
 
     try {
-      const fileRef = ref(storage, slide.imageUrl);
-      await deleteObject(fileRef);
-      await deleteDoc(doc(db, "heroSlider", slide.id));
+      await deleteDoc(doc(db, "heroSlider", item.id));
+      const fileRef = ref(storage, item.imageUrl);
+      await deleteObject(fileRef).catch(() => {});
     } catch (err) {
       console.error(err);
-      alert("❌ Delete failed");
+      alert("Delete failed");
     }
   };
 
@@ -99,29 +97,39 @@ const HeroSliderManager: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Hero Slider Manager</h1>
 
-      {/* Upload */}
-      <input
-        type="file"
-        accept="image/*"
-        disabled={uploading}
-        onChange={(e) => e.target.files && handleUpload(e.target.files[0])}
-      />
+      {/* UPLOAD */}
+      <div className="bg-white p-4 rounded shadow">
+        <input
+          type="file"
+          accept="image/*"
+          disabled={uploading}
+          onChange={(e) => e.target.files && uploadImage(e.target.files[0])}
+        />
 
-      {/* Slides */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {slides.map((slide) => (
-          <div
-            key={slide.id}
-            className="bg-white rounded shadow p-2 relative"
-          >
+        {uploading && (
+          <div className="mt-2 text-sm">
+            Uploading: {progress}%
+            <div className="w-full bg-gray-200 h-2 rounded mt-1">
+              <div
+                className="bg-red-600 h-2 rounded"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* PREVIEW GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {items.map((item) => (
+          <div key={item.id} className="relative group">
             <img
-              src={slide.imageUrl}
-              alt="slide"
-              className="w-full h-40 object-cover rounded"
+              src={item.imageUrl}
+              className="h-40 w-full object-cover rounded"
             />
             <button
-              onClick={() => handleDelete(slide)}
-              className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded"
+              onClick={() => deleteSlide(item)}
+              className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100"
             >
               Delete
             </button>
@@ -129,9 +137,9 @@ const HeroSliderManager: React.FC = () => {
         ))}
       </div>
 
-      {slides.length === 0 && (
-        <p className="text-gray-500 text-sm">No slider images added yet.</p>
-      )}
+      <p className="text-xs text-gray-500">
+        Firestore: <b>heroSlider</b> | Storage: <b>hero-slider/</b>
+      </p>
     </div>
   );
 };
