@@ -1,183 +1,143 @@
-import React, { useEffect, useState } from "react";
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { db, storage } from '../../services/firebaseconfig';
+import React, { useState, useEffect } from 'react';
+import {
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+} from 'firebase/firestore';
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage';
 
-interface GalleryImage {
+import { db, storage, isConfigured } from '../../services/firebaseconfig';
+
+/**
+ * =====================================================
+ * PHOTO GALLERY MANAGER – Upload and Manage Images
+ * Firebase Storage + Firestore Sync
+ * =====================================================
+ */
+
+interface PhotoGalleryItem {
   id: string;
   imageUrl: string;
-  storagePath: string;
-  category: string;
 }
 
 const PhotoGalleryManager: React.FC = () => {
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
-  const [category, setCategory] = useState("General");
+  const [photos, setPhotos] = useState<PhotoGalleryItem[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState<number[]>([]);
-  const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0);
 
-  // Fetch existing images
+  // ================= LOAD PHOTOS =================
   useEffect(() => {
-    const fetchImages = async () => {
-      const q = query(collection(db, "photoGallery"), orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      const data: GalleryImage[] = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<GalleryImage, "id">),
-      }));
-      setImages(data);
-    };
+    if (!isConfigured()) return;
 
-    fetchImages();
+    const unsub = onSnapshot(collection(db, 'photoGallery'), (snap) => {
+      const data: PhotoGalleryItem[] = snap.docs.map((d) => ({
+        id: d.id,
+        imageUrl: d.data().imageUrl,
+      }));
+      setPhotos(data);
+    });
+
+    return () => unsub();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    setFiles(Array.from(e.target.files));
-    setProgress(Array(e.target.files.length).fill(0));
-  };
-
-  const handleUpload = async () => {
-    if (files.length === 0) {
-      setError("Please select images");
-      return;
-    }
+  // ================= UPLOAD PHOTO =================
+  const uploadPhoto = (file: File) => {
+    if (!file || !isConfigured()) return;
 
     setUploading(true);
-    setError("");
+    const storageRef = ref(storage, `photo-gallery/${Date.now()}-${file.name}`);
+    const task = uploadBytesResumable(storageRef, file);
 
-    files.forEach((file, index) => {
-      const storagePath = `photo-gallery/${category}/${Date.now()}-${file.name}`;
-      const storageRef = ref(storage, storagePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const percent = Math.round(
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          );
-          setProgress((prev) => {
-            const copy = [...prev];
-            copy[index] = percent;
-            return copy;
-          });
-        },
-        (err) => {
-          console.error(err);
-          setError("Upload failed");
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          const docRef = await addDoc(collection(db, "photoGallery"), {
-            imageUrl: downloadURL,
-            storagePath,
-            category,
-            createdAt: serverTimestamp(),
-          });
-
-          setImages((prev) => [
-            {
-              id: docRef.id,
-              imageUrl: downloadURL,
-              storagePath,
-              category,
-            },
-            ...prev,
-          ]);
-
-          if (index === files.length - 1) {
-            setFiles([]);
-            setProgress([]);
-            setUploading(false);
-          }
-        }
-      );
-    });
+    task.on(
+      'state_changed',
+      (snap) => {
+        const percent = (snap.bytesTransferred / snap.totalBytes) * 100;
+        setProgress(Math.round(percent));
+      },
+      (err) => {
+        console.error(err);
+        alert('Upload failed');
+        setUploading(false);
+      },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        await addDoc(collection(db, 'photoGallery'), {
+          imageUrl: url,
+        });
+        setUploading(false);
+        setProgress(0);
+      }
+    );
   };
 
-  const handleDelete = async (img: GalleryImage) => {
-    if (!confirm("Delete this image permanently?")) return;
+  // ================= DELETE PHOTO =================
+  const deletePhoto = async (photo: PhotoGalleryItem) => {
+    if (!window.confirm('Delete this photo?')) return;
 
-    await deleteDoc(doc(db, "photoGallery", img.id));
-    await deleteObject(ref(storage, img.storagePath));
-
-    setImages((prev) => prev.filter((i) => i.id !== img.id));
+    try {
+      await deleteDoc(doc(db, 'photoGallery', photo.id));
+      const fileRef = ref(storage, photo.imageUrl);
+      await deleteObject(fileRef).catch(() => {});
+    } catch (err) {
+      console.error(err);
+      alert('Delete failed');
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-xl font-bold mb-4">Upload Photos</h2>
+      <h1 className="text-2xl font-bold">Photo Gallery Manager</h1>
 
-        {error && <p className="text-red-600 mb-2">{error}</p>}
-
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="mb-3 p-2 border rounded"
-        >
-          <option>General</option>
-          <option>Events</option>
-          <option>Meetings</option>
-          <option>Development</option>
-        </select>
-
+      {/* UPLOAD PHOTO */}
+      <div className="bg-white p-4 rounded shadow">
         <input
           type="file"
-          multiple
           accept="image/*"
-          onChange={handleFileChange}
-          className="mb-3 block"
+          disabled={uploading}
+          onChange={(e) => e.target.files && uploadPhoto(e.target.files[0])}
         />
 
-        {progress.map((p, i) => (
-          <div key={i} className="mb-2">
-            <div className="h-2 bg-gray-200 rounded">
+        {uploading && (
+          <div className="mt-2 text-sm">
+            Uploading: {progress}%
+            <div className="w-full bg-gray-200 h-2 rounded mt-1">
               <div
-                className="h-2 bg-blue-600 rounded"
-                style={{ width: `${p}%` }}
+                className="bg-green-600 h-2 rounded"
+                style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-sm">Image {i + 1}: {p}%</p>
+          </div>
+        )}
+      </div>
+
+      {/* PREVIEW GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {photos.map((photo) => (
+          <div key={photo.id} className="relative group">
+            <img
+              src={photo.imageUrl}
+              className="h-40 w-full object-cover rounded"
+            />
+            <button
+              onClick={() => deletePhoto(photo)}
+              className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100"
+            >
+              Delete
+            </button>
           </div>
         ))}
-
-        <button
-          onClick={handleUpload}
-          disabled={uploading}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          {uploading ? "Uploading..." : "Upload Images"}
-        </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-xl font-bold mb-4">Gallery Images</h2>
-
-        {images.length === 0 && (
-          <p className="text-gray-500">No images uploaded yet.</p>
-        )}
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map((img) => (
-            <div key={img.id} className="relative group">
-              <img
-                src={img.imageUrl}
-                className="w-full h-40 object-cover rounded"
-              />
-              <button
-                onClick={() => handleDelete(img)}
-                className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      <p className="text-xs text-gray-500">
+        Firestore: <b>photoGallery</b> | Storage: <b>photo-gallery/</b>
+      </p>
     </div>
   );
 };
