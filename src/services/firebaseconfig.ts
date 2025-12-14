@@ -5,7 +5,7 @@ import { getStorage } from "firebase/storage";
 
 /**
  * =====================================================
- * FIREBASE CONFIG (VITE + VERCEL SAFE)
+ * FIREBASE CONFIG – SAFE FOR GITHUB + VERCEL
  * =====================================================
  */
 
@@ -18,9 +18,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
 };
 
-export const isConfigured = () => {
-  return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
-};
+export const isConfigured = () =>
+  Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 const app = initializeApp(firebaseConfig);
 
