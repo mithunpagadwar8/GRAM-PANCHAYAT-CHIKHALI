@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
 
+import HeroSliderManager from "./admin/HeroSliderManager";
+import PhotoGalleryManager from "./admin/PhotoGalleryManager";
+
+
 /**
  * =====================================================
  * ADMIN DASHBOARD – MASTER CMS CONTROLLER
