@@ -221,41 +221,29 @@ export const Home: React.FC<HomeProps> = ({ settings, members, links, notices })
             </div>
             
             <div>
-               <h4 className="font-bold text-xl mb-4 border-b border-blue-700 pb-2 inline-block">Location Map</h4>
-               <div className="bg-gray-700 h-40 rounded overflow-hidden">
-                  <iframe 
-                    src={settings.mapEmbedUrl} 
-                    width="100%" 
-                    height="100%" 
-                    style={{border:0}} 
-                    allowFullScreen={true} 
-                    loading="lazy"
-                    title="Map"
-                  ></iframe>
-               </div>
+              <h4 className="font-bold text-xl mb-4 border-b border-blue-700 pb-2 inline-block">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li><a href="#/" className="hover:text-white transition">Home</a></li>
+                <li><a href="#/tax" className="hover:text-white transition">Tax Payment</a></li>
+                <li><a href="#/complaint" className="hover:text-white transition">Complaints</a></li>
+                <li><a href="#/schemes" className="hover:text-white transition">Schemes</a></li>
+                <li><a href="#/admin" className="hover:text-white transition">Admin Login</a></li>
+              </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-xl mb-4 border-b border-blue-700 pb-2 inline-block">Govt Links</h4>
-              <div className="flex flex-wrap gap-2 text-xs">
-                 <a href="https://www.india.gov.in/" target="_blank" className="bg-blue-800 px-3 py-1 rounded hover:bg-blue-700">India.gov.in</a>
-                 <a href="https://www.maharashtra.gov.in/" target="_blank" className="bg-blue-800 px-3 py-1 rounded hover:bg-blue-700">Maharashtra Govt</a>
-                 <a href="https://gadchiroli.gov.in/" target="_blank" className="bg-blue-800 px-3 py-1 rounded hover:bg-blue-700">Gadchiroli Dist</a>
-              </div>
-              <div className="mt-6 text-xs text-gray-400 flex justify-between items-end">
-                <div>
-                  &copy; {new Date().getFullYear()} {settings.panchayatName}.<br/>
-                  Designed for Digital India Initiative.
-                </div>
-                {/* HIDDEN ADMIN LOGIN TRIGGER - SECURE ENTRY */}
-                <Link to="/admin" className="opacity-10 hover:opacity-100 transition-opacity text-white" title="Staff Login">
-                   <i className="fas fa-shield-alt"></i>
-                </Link>
-              </div>
+              <h4 className="font-bold text-xl mb-4 border-b border-blue-700 pb-2 inline-block">Govt Portals</h4>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li><a href="https://aaplesarkar.mahaonline.gov.in/" target="_blank" rel="noreferrer" className="hover:text-white transition">Aaple Sarkar</a></li>
+                <li><a href="https://rdd.maharashtra.gov.in/" target="_blank" rel="noreferrer" className="hover:text-white transition">Rural Development Dept</a></li>
+                <li><a href="https://egramswaraj.gov.in/" target="_blank" rel="noreferrer" className="hover:text-white transition">eGramSwaraj</a></li>
+              </ul>
             </div>
         </div>
+        <div className="bg-gray-900 text-center py-4 text-xs text-gray-500">
+          &copy; {new Date().getFullYear()} {settings.panchayatName}. All rights reserved. | Developed for Digital India.
+        </div>
       </footer>
-      
     </div>
   );
 };

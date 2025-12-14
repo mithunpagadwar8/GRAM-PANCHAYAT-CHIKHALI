@@ -279,7 +279,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div className="px-6 py-4 border-b border-blue-800 bg-blue-900/50">
                 <div className="text-xs text-blue-300 uppercase font-bold">Logged in as</div>
-                <div className="text-sm font-bold truncate" title={currentUser.email || ''}>{currentUser.email}</div>
+                <div className="text-sm font-bold truncate" title={currentUser?.email || ''}>{currentUser?.email}</div>
             </div>
             <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
                 {[
