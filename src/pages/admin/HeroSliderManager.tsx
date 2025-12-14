@@ -15,7 +15,7 @@ import {
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
-import { db, storage } from "../services/firebase";
+import { storage, db } from '../../services/firebaseconfig';
 
 /**
  * =====================================================
