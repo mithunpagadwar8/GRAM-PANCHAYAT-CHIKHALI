@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { signOut } from "firebase/auth";
-import { auth } from "../services/firebase";
+import { auth } from "../services/firebaseconfig";
 
 // ================= MANAGERS =================
 import HeroSliderManager from "../admin/HeroSliderManager";
