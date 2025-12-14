@@ -15,23 +15,8 @@ const firebaseConfig = {
   measurementId: "G-TWDRPV484T"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Analytics (optional but good for tracking)
-let analytics;
-try {
-  analytics = getAnalytics(app);
-} catch (e) {
-  console.warn("Analytics failed to load (likely due to ad blocker)", e);
-}
-
-// Initialize Services
+export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const auth = getAuth(app);
-
-// Helper to check if config is valid
-export const isConfigured = () => {
-  return true; // Config is now live
-};
