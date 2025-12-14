@@ -20,7 +20,12 @@ import SchemesManager from "./admin/SchemesManager";
 import PagesManager from "./admin/PagesManager";
 import SettingsManager from "./admin/SettingsManager";
 
-/* ================= TYPES ================= */
+/**
+ * =====================================================
+ * ADMIN DASHBOARD – MASTER CMS
+ * YouTube-style | Full Website Control
+ * =====================================================
+ */
 
 type AdminSection =
   | "overview"
@@ -37,6 +42,12 @@ interface AdminDashboardProps {
   settings: AppSettings;
   setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 
+  taxRecords: TaxRecord[];
+  setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
+
+  complaints: Complaint[];
+  setComplaints: React.Dispatch<React.SetStateAction<Complaint[]>>;
+
   blogs: BlogPost[];
   setBlogs: React.Dispatch<React.SetStateAction<BlogPost[]>>;
 
@@ -49,28 +60,16 @@ interface AdminDashboardProps {
   links: ImportantLink[];
   setLinks: React.Dispatch<React.SetStateAction<ImportantLink[]>>;
 
-  taxRecords: TaxRecord[];
-  setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
-
-  complaints: Complaint[];
-  setComplaints: React.Dispatch<React.SetStateAction<Complaint[]>>;
-
   isCloudConnected: boolean;
 }
 
-/* ================= COMPONENT ================= */
-
-export default function AdminDashboard({
+const AdminDashboard: React.FC<AdminDashboardProps> = ({
   members,
-  setMembers,
   settings,
-  setSettings,
   blogs,
-  setBlogs,
   schemes,
-  setSchemes,
-  isCloudConnected
-}: AdminDashboardProps) {
+  isCloudConnected,
+}) => {
   const [section, setSection] = useState<AdminSection>("overview");
 
   const logout = async () => {
@@ -80,30 +79,22 @@ export default function AdminDashboard({
   return (
     <div className="flex min-h-screen bg-gray-100">
 
-      {/* SIDEBAR */}
+      {/* ================= SIDEBAR ================= */}
       <aside className="w-64 bg-black text-white p-4">
         <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
 
         <nav className="space-y-2">
-          <button onClick={() => setSection("overview")} className="w-full text-left p-2 hover:bg-gray-800">
-            Dashboard
-          </button>
-          <button onClick={() => setSection("hero")} className="w-full text-left p-2 hover:bg-gray-800">
-            Hero Slider
-          </button>
-          <button onClick={() => setSection("blog")} className="w-full text-left p-2 hover:bg-gray-800">
-            Blog / Notices
-          </button>
-          <button onClick={() => setSection("schemes")} className="w-full text-left p-2 hover:bg-gray-800">
-            Schemes
-          </button>
-          <button onClick={() => setSection("pages")} className="w-full text-left p-2 hover:bg-gray-800">
-            Pages
-          </button>
-          <button onClick={() => setSection("settings")} className="w-full text-left p-2 hover:bg-gray-800">
-            Settings
-          </button>
+          <button onClick={() => setSection("overview")} className="w-full text-left p-2 hover:bg-gray-800">Dashboard</button>
+          <button onClick={() => setSection("hero")} className="w-full text-left p-2 hover:bg-gray-800">Hero Slider</button>
+          <button onClick={() => setSection("blog")} className="w-full text-left p-2 hover:bg-gray-800">Blog / Notices</button>
+          <button onClick={() => setSection("schemes")} className="w-full text-left p-2 hover:bg-gray-800">Schemes</button>
+          <button onClick={() => setSection("pages")} className="w-full text-left p-2 hover:bg-gray-800">Pages</button>
+          <button onClick={() => setSection("settings")} className="w-full text-left p-2 hover:bg-gray-800">Settings</button>
         </nav>
+
+        <div className="mt-6 text-xs text-gray-400">
+          Cloud Status: {isCloudConnected ? "🟢 Connected" : "🔴 Offline"}
+        </div>
 
         <button
           onClick={logout}
@@ -113,41 +104,31 @@ export default function AdminDashboard({
         </button>
       </aside>
 
-      {/* MAIN */}
+      {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 p-6">
         {section === "overview" && (
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-sm text-gray-600">
-              Cloud Status:{" "}
-              <span className={isCloudConnected ? "text-green-600" : "text-red-600"}>
-                {isCloudConnected ? "Connected" : "Offline"}
-              </span>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+            <p className="text-gray-600">
+              Total Members: {members.length}
+            </p>
+            <p className="text-gray-600">
+              Total Blogs / Notices: {blogs.length}
+            </p>
+            <p className="text-gray-600">
+              Total Schemes: {schemes.length}
             </p>
           </div>
         )}
 
-        {section === "hero" && (
-          <HeroSliderManager
-            images={settings.sliderImages}
-            setSettings={setSettings}
-          />
-        )}
-
-        {section === "blog" && (
-          <BlogManager blogs={blogs} setBlogs={setBlogs} />
-        )}
-
-        {section === "schemes" && (
-          <SchemesManager schemes={schemes} setSchemes={setSchemes} />
-        )}
-
+        {section === "hero" && <HeroSliderManager />}
+        {section === "blog" && <BlogManager />}
+        {section === "schemes" && <SchemesManager />}
         {section === "pages" && <PagesManager />}
-
-        {section === "settings" && (
-          <SettingsManager settings={settings} setSettings={setSettings} />
-        )}
+        {section === "settings" && <SettingsManager />}
       </main>
     </div>
   );
-}
+};
+
+export default AdminDashboard;
