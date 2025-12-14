@@ -26,7 +26,7 @@ const Home: React.FC<HomeProps> = ({
     <div className="space-y-12">
 
       {/* ================= HERO SLIDER ================= */}
-      <HeroSlider images={settings.sliderImages} />
+     <HeroSlider />
 
       {/* ================= NOTICE / NEWS ================= */}
       <section className="max-w-7xl mx-auto px-4">
