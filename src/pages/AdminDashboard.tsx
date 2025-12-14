@@ -2,98 +2,128 @@ import React, { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebaseconfig";
 
-// ================= MANAGERS =================
-import HeroSliderManager from "../admin/HeroSliderManager";
-import BlogManager from "../admin/BlogManager";
-import SchemesManager from "../admin/SchemesManager";
-import PagesManager from "../admin/PagesManager";
-import SettingsManager from "../admin/SettingsManager";
+import {
+  AppSettings,
+  BlogPost,
+  Complaint,
+  ImportantLink,
+  MeetingRecord,
+  Member,
+  Scheme,
+  TaxRecord,
+} from "../types";
 
 /**
  * =====================================================
- * ADMIN DASHBOARD – MASTER CMS CONTROLLER
- * YouTube-style | Future-proof | All Website Tabs
+ * ADMIN DASHBOARD – SAFE CORE VERSION
+ * (Build-safe | Props-fixed | Vercel-safe)
  * =====================================================
  */
 
-type AdminSection =
-  | "overview"
-  | "hero"
-  | "blog"
-  | "schemes"
-  | "pages"
-  | "settings";
+type Props = {
+  members: Member[];
+  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
 
-const AdminDashboard: React.FC = () => {
-  const [section, setSection] = useState<AdminSection>("overview");
+  settings: AppSettings;
+  setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
+  taxRecords: TaxRecord[];
+  setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
+
+  complaints: Complaint[];
+  setComplaints: React.Dispatch<React.SetStateAction<Complaint[]>>;
+
+  blogs: BlogPost[];
+  setBlogs: React.Dispatch<React.SetStateAction<BlogPost[]>>;
+
+  schemes: Scheme[];
+  setSchemes: React.Dispatch<React.SetStateAction<Scheme[]>>;
+
+  meetings: MeetingRecord[];
+  setMeetings: React.Dispatch<React.SetStateAction<MeetingRecord[]>>;
+
+  links: ImportantLink[];
+  setLinks: React.Dispatch<React.SetStateAction<ImportantLink[]>>;
+
+  isCloudConnected: boolean;
+};
+
+export default function AdminDashboard(props: Props) {
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "content" | "settings"
+  >("dashboard");
+
+  const logout = async () => {
+    await signOut(auth);
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* ================= SIDEBAR ================= */}
-      <aside className="w-64 bg-black text-white p-4 flex flex-col">
-        <h2 className="text-xl font-bold mb-6 border-b border-gray-700 pb-2">
-          Admin Panel
-        </h2>
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* SIDEBAR */}
+      <aside className="w-64 bg-black text-white p-4">
+        <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
 
-        <nav className="flex-1 space-y-1">
-          <SidebarButton label="Dashboard" onClick={() => setSection("overview")} />
-          <SidebarButton label="Hero Slider" onClick={() => setSection("hero")} />
-          <SidebarButton label="Blog / Notices" onClick={() => setSection("blog")} />
-          <SidebarButton label="Schemes" onClick={() => setSection("schemes")} />
-          <SidebarButton label="Pages Content" onClick={() => setSection("pages")} />
-          <SidebarButton label="Settings" onClick={() => setSection("settings")} />
+        <nav className="space-y-2">
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className="w-full text-left p-2 hover:bg-gray-800 rounded"
+          >
+            Dashboard
+          </button>
+
+          <button
+            onClick={() => setActiveTab("content")}
+            className="w-full text-left p-2 hover:bg-gray-800 rounded"
+          >
+            Website Content
+          </button>
+
+          <button
+            onClick={() => setActiveTab("settings")}
+            className="w-full text-left p-2 hover:bg-gray-800 rounded"
+          >
+            Settings
+          </button>
         </nav>
 
         <button
-          onClick={handleLogout}
-          className="mt-6 bg-red-600 hover:bg-red-700 transition w-full p-2 rounded font-semibold"
+          onClick={logout}
+          className="mt-6 bg-red-600 hover:bg-red-700 w-full p-2 rounded"
         >
           Logout
         </button>
       </aside>
 
-      {/* ================= MAIN CONTENT ================= */}
-      <main className="flex-1 p-6 overflow-y-auto">
-        {section === "overview" && (
-          <div className="text-2xl font-bold">
-            Welcome to Admin Dashboard
-            <p className="text-sm text-gray-500 mt-2">
-              Manage complete website from here (YouTube-style CMS)
+      {/* MAIN */}
+      <main className="flex-1 p-6">
+        {activeTab === "dashboard" && (
+          <div>
+            <h1 className="text-2xl font-bold mb-4">Welcome Admin 👋</h1>
+            <p className="text-gray-600">
+              Cloud Status:{" "}
+              {props.isCloudConnected ? "🟢 Connected" : "🔴 Offline"}
             </p>
           </div>
         )}
 
-        {section === "hero" && <HeroSliderManager />}
-        {section === "blog" && <BlogManager />}
-        {section === "schemes" && <SchemesManager />}
-        {section === "pages" && <PagesManager />}
-        {section === "settings" && <SettingsManager />}
+        {activeTab === "content" && (
+          <div>
+            <h2 className="text-xl font-bold mb-2">Content Management</h2>
+            <p className="text-gray-600">
+              Hero Slider, Blogs, Schemes, Pages will be enabled in next steps.
+            </p>
+          </div>
+        )}
+
+        {activeTab === "settings" && (
+          <div>
+            <h2 className="text-xl font-bold mb-2">Website Settings</h2>
+            <p className="text-gray-600">
+              Logo, Name, Contact & System settings.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
-};
-
-export default AdminDashboard;
-
-// ================= SMALL COMPONENT =================
-interface SidebarButtonProps {
-  label: string;
-  onClick: () => void;
 }
-
-const SidebarButton: React.FC<SidebarButtonProps> = ({ label, onClick }) => (
-  <button
-    onClick={onClick}
-    className="block w-full text-left px-3 py-2 rounded hover:bg-gray-800 transition"
-  >
-    {label}
-  </button>
-);
