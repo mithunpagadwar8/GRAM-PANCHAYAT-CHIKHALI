@@ -71,11 +71,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch (error: any) {
       console.error("Login Error:", error);
       
-      // Handle "User Not Found" or "Invalid Credential" (which can be either wrong pass or no user)
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-          // Attempt to Register as fallback
-          handleRegister();
-      } 
+     const handleLogin = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Login successful");
+  } catch (error: any) {
+    console.error(error);
+
+    if (error.code === "auth/user-not-found") {
+      alert("User not found. Please register first.");
+    } else if (error.code === "auth/wrong-password") {
+      alert("Wrong password. Please try again.");
+    } else if (error.code === "auth/invalid-credential") {
+      alert("Invalid email or password.");
+    } else {
+      alert("Login failed. Please try again.");
+    }
+  }
+};
+
       else if (error.code === 'auth/wrong-password') {
           // Explicitly wrong password for existing user
           setAuthError('Incorrect Password. Please check the password or reset the user in Firebase Console.');
