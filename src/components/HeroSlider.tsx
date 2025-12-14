@@ -1,89 +1,44 @@
-import React, { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { db } from "../services/firebaseconfig";
+import React, { useEffect, useState } from 'react';
+import { db } from '../services/firebaseconfig';
+import { collection, onSnapshot } from 'firebase/firestore';
 
-interface Slide {
-  id: string;
-  url: string;
-}
+/**
+ * =====================================================
+ * PUBLIC HERO SLIDER – LIVE Firestore Slider
+ * Displays images from Firestore (Automatic Sync)
+ * =====================================================
+ */
 
-const HeroSlider: React.FC = () => {
-  const [slides, setSlides] = useState<Slide[]>([]);
-  const [current, setCurrent] = useState(0);
+const HeroSlider: React.FC<{ images: string[] }> = ({ images }) => {
+  const [sliderImages, setSliderImages] = useState<string[]>([]);
 
-  // 🔥 Firestore LIVE connection
+  // ================= LOAD SLIDER IMAGES =================
   useEffect(() => {
-    const q = query(
-      collection(db, "heroSlider"),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: Slide[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        url: doc.data().url,
-      }));
-      setSlides(data);
+    const unsub = onSnapshot(collection(db, 'heroSlider'), (snap) => {
+      const data: string[] = snap.docs.map((d) => d.data().imageUrl);
+      setSliderImages(data);
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  // ⏱ Auto slide
-  useEffect(() => {
-    if (slides.length === 0) return;
-    const timer = setInterval(() => {
-      setCurrent((p) => (p + 1) % slides.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [slides]);
-
-  if (slides.length === 0) {
-    return (
-      <div className="h-[300px] md:h-[500px] flex items-center justify-center bg-gray-200 text-gray-500">
-        No slider images uploaded
-      </div>
-    );
-  }
-
   return (
-    <div className="relative h-[300px] md:h-[500px] overflow-hidden bg-black">
-      {slides.map((slide, index) => (
-        <div
-          key={slide.id}
-          className={`absolute inset-0 transition-transform duration-1000 ease-in-out ${
-            index === current
-              ? "translate-x-0"
-              : index < current
-              ? "-translate-x-full"
-              : "translate-x-full"
-          }`}
-        >
-          <img
-            src={slide.url}
-            alt="Hero Slide"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/30" />
-        </div>
-      ))}
-
-      {/* Controls */}
-      <button
-        onClick={() =>
-          setCurrent(current === 0 ? slides.length - 1 : current - 1)
-        }
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white p-2 rounded-full z-10"
-      >
-        ‹
-      </button>
-
-      <button
-        onClick={() => setCurrent((current + 1) % slides.length)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white p-2 rounded-full z-10"
-      >
-        ›
-      </button>
+    <div className="relative h-[300px] md:h-[500px] overflow-hidden bg-gray-900">
+      {sliderImages.length > 0 ? (
+        sliderImages.map((img, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-transform duration-1000 ease-in-out ${
+              index === 0 ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            <img src={img} alt={`Slide ${index}`} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/20"></div>
+          </div>
+        ))
+      ) : (
+        <div className="text-white text-center p-4">Loading Slider...</div>
+      )}
     </div>
   );
 };
