@@ -9,6 +9,7 @@ import NoticeManager from "./admin/NoticeManager";
 import BlogManager from "./admin/BlogManager";
 import SchemesManager from "./admin/SchemesManager";
 import PagesManager from "./admin/PagesManager";
+import SettingsManager from "./admin/SettingsManager";
 
 /**
  * =====================================================
