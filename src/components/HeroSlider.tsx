@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { db } from "../services/firebase";
+import { db } from "../services/firebaseconfig";
 
 interface Slide {
   id: string;
