@@ -6,6 +6,7 @@ import HeroSliderManager from "./admin/HeroSliderManager";
 import PhotoGalleryManager from "./admin/PhotoGalleryManager";
 import VideoGalleryManager from "./admin/VideoGalleryManager";
 import NoticeManager from "./admin/NoticeManager";
+import BlogManager from "./admin/BlogManager";
 
 
 /**
