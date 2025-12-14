@@ -38,7 +38,7 @@ import {
 } from './types';
 
 import { subscribeToCollection, addToCollection } from './services/db';
-import { isConfigured } from './services/firebaseconfig';
+import { isConfigured } from './firebaseConfig';
 
 function App() {
   // ================= STATE =================
