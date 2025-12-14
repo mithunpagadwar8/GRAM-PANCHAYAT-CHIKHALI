@@ -3,35 +3,39 @@ import { signOut } from "firebase/auth";
 import { auth } from "../services/firebaseconfig";
 
 import {
+  Member,
   AppSettings,
   BlogPost,
-  Complaint,
-  ImportantLink,
-  MeetingRecord,
-  Member,
   Scheme,
+  MeetingRecord,
+  ImportantLink,
   TaxRecord,
+  Complaint
 } from "../types";
 
-/**
- * =====================================================
- * ADMIN DASHBOARD – SAFE CORE VERSION
- * (Build-safe | Props-fixed | Vercel-safe)
- * =====================================================
- */
+// MANAGERS
+import HeroSliderManager from "./admin/HeroSliderManager";
+import BlogManager from "./admin/BlogManager";
+import SchemesManager from "./admin/SchemesManager";
+import PagesManager from "./admin/PagesManager";
+import SettingsManager from "./admin/SettingsManager";
 
-type Props = {
+/* ================= TYPES ================= */
+
+type AdminSection =
+  | "overview"
+  | "hero"
+  | "blog"
+  | "schemes"
+  | "pages"
+  | "settings";
+
+interface AdminDashboardProps {
   members: Member[];
   setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
 
   settings: AppSettings;
   setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
-
-  taxRecords: TaxRecord[];
-  setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
-
-  complaints: Complaint[];
-  setComplaints: React.Dispatch<React.SetStateAction<Complaint[]>>;
 
   blogs: BlogPost[];
   setBlogs: React.Dispatch<React.SetStateAction<BlogPost[]>>;
@@ -45,50 +49,65 @@ type Props = {
   links: ImportantLink[];
   setLinks: React.Dispatch<React.SetStateAction<ImportantLink[]>>;
 
-  isCloudConnected: boolean;
-};
+  taxRecords: TaxRecord[];
+  setTaxRecords: React.Dispatch<React.SetStateAction<TaxRecord[]>>;
 
-export default function AdminDashboard(props: Props) {
-  const [activeTab, setActiveTab] = useState<
-    "dashboard" | "content" | "settings"
-  >("dashboard");
+  complaints: Complaint[];
+  setComplaints: React.Dispatch<React.SetStateAction<Complaint[]>>;
+
+  isCloudConnected: boolean;
+}
+
+/* ================= COMPONENT ================= */
+
+export default function AdminDashboard({
+  members,
+  setMembers,
+  settings,
+  setSettings,
+  blogs,
+  setBlogs,
+  schemes,
+  setSchemes,
+  isCloudConnected
+}: AdminDashboardProps) {
+  const [section, setSection] = useState<AdminSection>("overview");
 
   const logout = async () => {
     await signOut(auth);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="flex min-h-screen bg-gray-100">
+
       {/* SIDEBAR */}
       <aside className="w-64 bg-black text-white p-4">
         <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
 
         <nav className="space-y-2">
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className="w-full text-left p-2 hover:bg-gray-800 rounded"
-          >
+          <button onClick={() => setSection("overview")} className="w-full text-left p-2 hover:bg-gray-800">
             Dashboard
           </button>
-
-          <button
-            onClick={() => setActiveTab("content")}
-            className="w-full text-left p-2 hover:bg-gray-800 rounded"
-          >
-            Website Content
+          <button onClick={() => setSection("hero")} className="w-full text-left p-2 hover:bg-gray-800">
+            Hero Slider
           </button>
-
-          <button
-            onClick={() => setActiveTab("settings")}
-            className="w-full text-left p-2 hover:bg-gray-800 rounded"
-          >
+          <button onClick={() => setSection("blog")} className="w-full text-left p-2 hover:bg-gray-800">
+            Blog / Notices
+          </button>
+          <button onClick={() => setSection("schemes")} className="w-full text-left p-2 hover:bg-gray-800">
+            Schemes
+          </button>
+          <button onClick={() => setSection("pages")} className="w-full text-left p-2 hover:bg-gray-800">
+            Pages
+          </button>
+          <button onClick={() => setSection("settings")} className="w-full text-left p-2 hover:bg-gray-800">
             Settings
           </button>
         </nav>
 
         <button
           onClick={logout}
-          className="mt-6 bg-red-600 hover:bg-red-700 w-full p-2 rounded"
+          className="mt-6 bg-red-600 w-full p-2 rounded"
         >
           Logout
         </button>
@@ -96,32 +115,37 @@ export default function AdminDashboard(props: Props) {
 
       {/* MAIN */}
       <main className="flex-1 p-6">
-        {activeTab === "dashboard" && (
+        {section === "overview" && (
           <div>
-            <h1 className="text-2xl font-bold mb-4">Welcome Admin 👋</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
+            <p className="text-sm text-gray-600">
               Cloud Status:{" "}
-              {props.isCloudConnected ? "🟢 Connected" : "🔴 Offline"}
+              <span className={isCloudConnected ? "text-green-600" : "text-red-600"}>
+                {isCloudConnected ? "Connected" : "Offline"}
+              </span>
             </p>
           </div>
         )}
 
-        {activeTab === "content" && (
-          <div>
-            <h2 className="text-xl font-bold mb-2">Content Management</h2>
-            <p className="text-gray-600">
-              Hero Slider, Blogs, Schemes, Pages will be enabled in next steps.
-            </p>
-          </div>
+        {section === "hero" && (
+          <HeroSliderManager
+            images={settings.sliderImages}
+            setSettings={setSettings}
+          />
         )}
 
-        {activeTab === "settings" && (
-          <div>
-            <h2 className="text-xl font-bold mb-2">Website Settings</h2>
-            <p className="text-gray-600">
-              Logo, Name, Contact & System settings.
-            </p>
-          </div>
+        {section === "blog" && (
+          <BlogManager blogs={blogs} setBlogs={setBlogs} />
+        )}
+
+        {section === "schemes" && (
+          <SchemesManager schemes={schemes} setSchemes={setSchemes} />
+        )}
+
+        {section === "pages" && <PagesManager />}
+
+        {section === "settings" && (
+          <SettingsManager settings={settings} setSettings={setSettings} />
         )}
       </main>
     </div>
