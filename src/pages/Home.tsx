@@ -3,6 +3,7 @@ import HeroSlider from "../components/HeroSlider";
 import Notices from "../components/Notices";
 import Members from "../components/Members";
 import ImportantLinks from "../components/ImportantLinks";
+import HeroSlider from "../components/HeroSlider";
 
 import { AppSettings, Member, ImportantLink, BlogPost } from "../types";
 
