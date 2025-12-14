@@ -1,6 +1,5 @@
-// STEP 1 FINAL: Original Home.tsx UI PRESERVED
-// Only Hero Slider + Notices are now Firebase-connected
-// SAFE to replace entire src/pages/Home.tsx with this file
+// STEP 2 FINAL: Hero Slider + Notices + Members + Important Links
+// Original UI preserved, only data source = Firebase
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -15,7 +14,6 @@ export const Home = () => {
   const [notices, setNotices] = useState<BlogPost[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // 🔥 LOAD FIREBASE DATA (STEP 1)
   useEffect(() => {
     const loadData = async () => {
       const settingsSnap = await getDoc(doc(db, 'settings', 'global'));
@@ -38,7 +36,6 @@ export const Home = () => {
     loadData();
   }, []);
 
-  // 🔄 HERO SLIDER AUTOPLAY
   useEffect(() => {
     if (!settings?.sliderImages?.length) return;
     const timer = setInterval(() => {
@@ -49,7 +46,6 @@ export const Home = () => {
 
   if (!settings) return <div className="text-center py-20">Loading…</div>;
 
-  // MEMBER FILTERS (UNCHANGED UI)
   const gpCommittee = members.filter(m => m.type === 'committee');
   const pesaCommittee = members.filter(m => m.type === 'pesa');
   const panchayatSamiti = members.filter(m => m.type === 'panchayat_samiti');
@@ -67,8 +63,7 @@ export const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* 🔥 HERO SLIDER (Firebase Controlled) */}
+      {/* HERO SLIDER */}
       <div className="relative h-[300px] md:h-[500px] overflow-hidden bg-gray-900">
         {settings.sliderImages?.map((img, index) => (
           <div
@@ -87,15 +82,48 @@ export const Home = () => {
         ))}
       </div>
 
-      {/* 🔔 NOTICES SIDEBAR (Firebase LIVE) */}
       <div className="container mx-auto px-4 mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">{/* LEFT CONTENT REMAINS SAME */}</div>
+        {/* MAIN CONTENT */}
+        <div className="lg:col-span-2 space-y-12">
+          {gpCommittee.length > 0 && (
+            <section>
+              <h3 className="text-2xl font-bold mb-4">Gram Panchayat Committee</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {gpCommittee.map(m => (
+                  <MemberCard key={m.id} member={m} colorClass="text-gov-secondary" borderColor="border-gov-primary" />
+                ))}
+              </div>
+            </section>
+          )}
 
+          {pesaCommittee.length > 0 && (
+            <section>
+              <h3 className="text-2xl font-bold mb-4">PESA Committee</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {pesaCommittee.map(m => (
+                  <MemberCard key={m.id} member={m} colorClass="text-green-600" borderColor="border-green-600" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {staff.length > 0 && (
+            <section>
+              <h3 className="text-2xl font-bold mb-4">Gram Panchayat Staff</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {staff.map(m => (
+                  <MemberCard key={m.id} member={m} colorClass="text-blue-600" borderColor="border-blue-600" />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* SIDEBAR */}
         <div className="space-y-8">
+          {/* NOTICES */}
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-gov-secondary text-white p-3 font-bold">
-              Latest Notices
-            </div>
+            <div className="bg-gov-secondary text-white p-3 font-bold">Latest Notices</div>
             <div className="p-4 max-h-[400px] overflow-y-auto">
               {notices.length ? (
                 <ul className="space-y-3">
@@ -111,12 +139,26 @@ export const Home = () => {
               )}
             </div>
           </div>
+
+          {/* IMPORTANT LINKS */}
+          <div className="bg-white rounded-lg shadow-lg p-4">
+            <h4 className="font-bold mb-3">Important Links</h4>
+            <ul className="space-y-2">
+              {links.map(link => (
+                <li key={link.id}>
+                  <a href={link.url} target="_blank" rel="noreferrer" className="block text-blue-700 hover:underline">
+                    {link.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
-      {/* FOOTER (UNCHANGED) */}
+      {/* FOOTER */}
       <footer className="bg-gov-primary text-white mt-16">
-        <div className="container mx-auto px-4 py-10 text-sm">
+        <div className="container mx-auto px-4 py-10 text-sm text-center">
           © {new Date().getFullYear()} {settings.panchayatName}
         </div>
       </footer>
