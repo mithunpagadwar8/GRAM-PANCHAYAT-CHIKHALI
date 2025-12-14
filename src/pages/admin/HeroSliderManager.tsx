@@ -5,142 +5,123 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
 } from "firebase/firestore";
 import {
   ref,
-  uploadBytesResumable,
+  uploadBytes,
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
-import { db, storage } from '../../services/firebaseconfig';
+
+import { db, storage, isConfigured } from "../../services/firebaseconfig";
 
 /**
  * =====================================================
- * HERO SLIDER MANAGER (ADMIN)
- * YouTube-style | Firebase + CDN | Fast Upload
- * Upload / Preview / Delete
+ * HERO SLIDER MANAGER
+ * Firestore + Firebase Storage
  * =====================================================
  */
 
 interface SliderItem {
   id: string;
   imageUrl: string;
-  createdAt?: any;
 }
 
 const HeroSliderManager: React.FC = () => {
   const [slides, setSlides] = useState<SliderItem[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   // ================= LOAD SLIDES =================
   useEffect(() => {
-    const q = query(
-      collection(db, "heroSlider"),
-      orderBy("createdAt", "desc")
-    );
+    if (!isConfigured()) return;
 
-    const unsub = onSnapshot(q, (snap) => {
-      const data: SliderItem[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
-      }));
-      setSlides(data);
-    });
+    const unsub = onSnapshot(
+      collection(db, "heroSlider"),
+      (snapshot) => {
+        const data: SliderItem[] = snapshot.docs.map((d) => ({
+          id: d.id,
+          imageUrl: d.data().imageUrl,
+        }));
+        setSlides(data);
+      }
+    );
 
     return () => unsub();
   }, []);
 
-  // ================= UPLOAD =================
-  const handleUpload = (file: File) => {
-    setUploading(true);
-    setProgress(0);
-
-    const fileRef = ref(
-      storage,
-      `hero-slider/${Date.now()}-${file.name}`
-    );
-
-    const task = uploadBytesResumable(fileRef, file);
-
-    task.on(
-      "state_changed",
-      (snap) => {
-        const percent = Math.round(
-          (snap.bytesTransferred / snap.totalBytes) * 100
-        );
-        setProgress(percent);
-      },
-      (err) => {
-        console.error(err);
-        alert("Upload failed");
-        setUploading(false);
-      },
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-
-        await addDoc(collection(db, "heroSlider"), {
-          imageUrl: url,
-          createdAt: serverTimestamp(),
-        });
-
-        setUploading(false);
-        setProgress(0);
-      }
-    );
-  };
-
-  // ================= DELETE =================
-  const handleDelete = async (slide: SliderItem) => {
-    if (!window.confirm("Delete this slide?")) return;
+  // ================= UPLOAD IMAGE =================
+  const handleUpload = async (file: File) => {
+    if (!file || !isConfigured()) return;
 
     try {
-      const imgRef = ref(storage, slide.imageUrl);
-      await deleteObject(imgRef);
+      setUploading(true);
+
+      const storageRef = ref(
+        storage,
+        `hero-slider/${Date.now()}-${file.name}`
+      );
+
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+
+      await addDoc(collection(db, "heroSlider"), {
+        imageUrl: url,
+        createdAt: serverTimestamp(),
+      });
+
+      alert("✅ Image added to Hero Slider");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ================= DELETE IMAGE =================
+  const handleDelete = async (slide: SliderItem) => {
+    if (!isConfigured()) return;
+
+    if (!confirm("Delete this slide?")) return;
+
+    try {
+      const fileRef = ref(storage, slide.imageUrl);
+      await deleteObject(fileRef);
       await deleteDoc(doc(db, "heroSlider", slide.id));
-    } catch (e) {
-      console.error(e);
-      alert("Delete failed");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Delete failed");
     }
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Hero Slider Manager</h2>
+      <h1 className="text-2xl font-bold">Hero Slider Manager</h1>
 
       {/* Upload */}
-      <div className="bg-white p-4 rounded shadow">
-        <label className="block font-semibold mb-2">Upload New Slide</label>
-        <input
-          type="file"
-          accept="image/*"
-          disabled={uploading}
-          onChange={(e) =>
-            e.target.files && handleUpload(e.target.files[0])
-          }
-        />
-        {uploading && (
-          <div className="mt-2 text-sm">Uploading: {progress}%</div>
-        )}
-      </div>
+      <input
+        type="file"
+        accept="image/*"
+        disabled={uploading}
+        onChange={(e) => e.target.files && handleUpload(e.target.files[0])}
+      />
 
-      {/* Preview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {slides.map((s) => (
+      {/* Slides */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {slides.map((slide) => (
           <div
-            key={s.id}
-            className="relative group border rounded overflow-hidden"
+            key={slide.id}
+            className="bg-white rounded shadow p-2 relative"
           >
             <img
-              src={s.imageUrl}
-              className="w-full h-40 object-cover"
+              src={slide.imageUrl}
+              alt="slide"
+              className="w-full h-40 object-cover rounded"
             />
             <button
-              onClick={() => handleDelete(s)}
-              className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100"
+              onClick={() => handleDelete(slide)}
+              className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded"
             >
               Delete
             </button>
@@ -149,7 +130,7 @@ const HeroSliderManager: React.FC = () => {
       </div>
 
       {slides.length === 0 && (
-        <p className="text-gray-500">No slides uploaded yet.</p>
+        <p className="text-gray-500 text-sm">No slider images added yet.</p>
       )}
     </div>
   );
