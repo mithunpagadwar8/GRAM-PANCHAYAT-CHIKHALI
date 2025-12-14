@@ -1,96 +1,66 @@
-import React, { useEffect, useState } from "react";
-import { collection, addDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { db, storage } from '../../services/firebaseconfig';
+import React, { useState } from 'react';
 
 /**
  * =====================================================
- * VIDEO GALLERY MANAGER (YouTube-style)
- * Firebase Storage + CDN
- * Upload / Progress / Preview / Delete
+ * VIDEO GALLERY MANAGER – YouTube-style video uploads
  * =====================================================
  */
 
-interface VideoItem {
-  id: string;
-  title: string;
-  url: string;
-  thumb: string;
-  createdAt: number;
-}
-
 const VideoGalleryManager: React.FC = () => {
-  const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videos, setVideos] = useState<string[]>([]);
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "videos"), snap => {
-      setVideos(
-        snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
-      );
-    });
-    return () => unsub();
-  }, []);
-
-  const handleUpload = () => {
-    if (!file || !title) return alert("Title & video required");
-
-    const storageRef = ref(storage, `videos/${Date.now()}_${file.name}`);
-    const task = uploadBytesResumable(storageRef, file);
-    setUploading(true);
-
-    task.on("state_changed", snap => {
-      setProgress((snap.bytesTransferred / snap.totalBytes) * 100);
-    }, console.error, async () => {
-      const url = await getDownloadURL(task.snapshot.ref);
-
-      await addDoc(collection(db, "videos"), {
-        title,
-        url,
-        thumb: "",
-        createdAt: Date.now()
-      });
-
-      setFile(null);
-      setTitle("");
-      setProgress(0);
-      setUploading(false);
-    });
+  // ================= ADD VIDEO =================
+  const addVideo = () => {
+    if (videoUrl) {
+      setVideos((prev) => [...prev, videoUrl]);
+      setVideoUrl("");
+    } else {
+      alert("Please enter a valid YouTube URL");
+    }
   };
 
-  const handleDelete = async (v: VideoItem) => {
-    await deleteDoc(doc(db, "videos", v.id));
-    await deleteObject(ref(storage, v.url));
+  // ================= DELETE VIDEO =================
+  const deleteVideo = (url: string) => {
+    if (window.confirm("Are you sure you want to delete this video?")) {
+      setVideos((prev) => prev.filter((video) => video !== url));
+    }
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">🎬 Video Manager</h2>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Video Gallery Manager</h1>
 
-      <div className="bg-white p-4 rounded shadow mb-6">
+      {/* Add Video */}
+      <div className="bg-white p-4 rounded shadow space-y-4">
         <input
-          className="border p-2 w-full mb-2"
-          placeholder="Video title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
+          className="w-full border p-2 rounded"
+          placeholder="Paste YouTube Video URL"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
         />
-        <input type="file" accept="video/*" onChange={e => setFile(e.target.files?.[0] || null)} />
-        {uploading && <progress value={progress} max={100} className="w-full mt-2" />}
-        <button onClick={handleUpload} className="mt-3 bg-blue-600 text-white px-4 py-2 rounded">
-          Upload Video
+        <button
+          onClick={addVideo}
+          className="bg-blue-600 text-white px-6 py-2 rounded"
+        >
+          Add Video
         </button>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        {videos.map(v => (
-          <div key={v.id} className="bg-white p-3 rounded shadow">
-            <video src={v.url} controls className="w-full rounded" />
-            <p className="mt-2 font-medium">{v.title}</p>
-            <button onClick={() => handleDelete(v)} className="mt-2 text-red-600">
-              Delete
+      {/* Video List */}
+      <div className="space-y-4">
+        {videos.map((url, index) => (
+          <div key={index} className="bg-white p-4 rounded shadow">
+            <iframe
+              src={`https://www.youtube.com/embed/${url.split("v=")[1]}`}
+              className="w-full h-48 rounded"
+              title={`Video ${index}`}
+            />
+            <button
+              onClick={() => deleteVideo(url)}
+              className="text-red-600 text-sm mt-2"
+            >
+              Delete Video
             </button>
           </div>
         ))}
