@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { db, storage } from "../../services/firebase";
+import { db, storage } from '../../services/firebaseconfig';
 
 interface GalleryImage {
   id: string;
