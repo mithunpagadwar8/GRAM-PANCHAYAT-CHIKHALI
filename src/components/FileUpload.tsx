@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { storage, isConfigured } from '../firebaseConfig';
+import { storage } from '../services/firebaseconfig';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 interface FileUploadProps {
